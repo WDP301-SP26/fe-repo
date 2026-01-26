@@ -46,5 +46,27 @@
   "generators": {
     "@nx/next": { "application": { "style": "tailwind", "linter": "eslint" } }
   },
+  "release": {
+    "projects": ["*"],
+    "version": {
+      "conventionalCommits": true,
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag",
+        "specifierSource": "conventional-commits"
+      }
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github"
+      },
+      "projectChangelogs": true
+    },
+    "git": {
+      "commit": true,
+      "tag": true
+    },
+    "release-publish": false
+  },
   "nxCloudId": "696f1f1bd590b2df088216c8"
 }
