@@ -64,16 +64,15 @@ export default function NavigationMenuDemo() {
                 </NavigationMenuContent>
               </>
             ) : (
-              <Link
-                href={item.href || ''}
-                target="_arya"
-                legacyBehavior
-                passHref
-              >
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+              <NavigationMenuLink asChild>
+                <Link
+                  href={item.href || ''}
+                  target="_arya"
+                  className={navigationMenuTriggerStyle()}
+                >
                   {item.label}
-                </NavigationMenuLink>
-              </Link>
+                </Link>
+              </NavigationMenuLink>
             )}
           </NavigationMenuItem>
         ))}
