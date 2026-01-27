@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 
-import { Icons } from "@/components/icons";
-import HeroVideoDialog from "@/components/magicui/hero-video";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Icons } from '@/components/icons';
+import HeroVideoDialog from '@/components/magicui/hero-video';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
-const ease = [0.16, 1, 0.3, 1];
+const ease: any = [0.16, 1, 0.3, 1];
 
 function HeroPill() {
   return (
@@ -47,15 +47,15 @@ function HeroTitles() {
     <div className="flex w-full max-w-2xl flex-col space-y-4 overflow-hidden pt-8">
       <motion.h1
         className="text-center text-4xl font-medium leading-tight text-foreground sm:text-5xl md:text-6xl"
-        initial={{ filter: "blur(10px)", opacity: 0, y: 50 }}
-        animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+        initial={{ filter: 'blur(10px)', opacity: 0, y: 50 }}
+        animate={{ filter: 'blur(0px)', opacity: 1, y: 0 }}
         transition={{
           duration: 1,
           ease,
           staggerChildren: 0.2,
         }}
       >
-        {["Automate", "your", "workflow", "with AI"].map((text, index) => (
+        {['Automate', 'your', 'workflow', 'with AI'].map((text, index) => (
           <motion.span
             key={index}
             className="inline-block px-1 md:px-2 text-balance font-semibold"
@@ -99,8 +99,8 @@ function HeroCTA() {
         <Link
           href="/signup"
           className={cn(
-            buttonVariants({ variant: "default" }),
-            "w-full sm:w-auto text-background flex gap-2"
+            buttonVariants({ variant: 'default' }),
+            'w-full sm:w-auto text-background flex gap-2',
           )}
         >
           <Icons.logo className="h-6 w-6" />

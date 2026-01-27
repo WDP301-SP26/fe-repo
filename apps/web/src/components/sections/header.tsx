@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import Drawer from "@/components/drawer";
-import { Icons } from "@/components/icons";
-import Menu from "@/components/menu";
-import { buttonVariants } from "@/components/ui/button";
-import { siteConfig } from "@/lib/config";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import Drawer from '@/components/drawer';
+import { Icons } from '@/components/icons';
+import Menu from '@/components/menu';
+import { buttonVariants } from '@/components/ui/button';
+import { siteConfig } from '@/lib/config';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Header() {
   const [addBorder, setAddBorder] = useState(false);
@@ -21,17 +21,17 @@ export default function Header() {
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener('scroll', handleScroll);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   return (
     <header
       className={
-        "relative sticky top-0 z-50 py-2 bg-background/60 backdrop-blur"
+        'relative sticky top-0 z-50 py-2 bg-background/60 backdrop-blur'
       }
     >
       <div className="flex justify-between items-center container">
@@ -52,16 +52,16 @@ export default function Header() {
 
             <div className="gap-2 flex">
               <Link
-                href="/login"
-                className={buttonVariants({ variant: "outline" })}
+                href="/signin"
+                className={buttonVariants({ variant: 'outline' })}
               >
                 Login
               </Link>
               <Link
                 href="/signup"
                 className={cn(
-                  buttonVariants({ variant: "default" }),
-                  "w-full sm:w-auto text-background flex gap-2"
+                  buttonVariants({ variant: 'default' }),
+                  'w-full sm:w-auto text-background flex gap-2',
                 )}
               >
                 <Icons.logo className="h-6 w-6" />
@@ -76,8 +76,8 @@ export default function Header() {
       </div>
       <hr
         className={cn(
-          "absolute w-full bottom-0 transition-opacity duration-300 ease-in-out",
-          addBorder ? "opacity-100" : "opacity-0"
+          'absolute w-full bottom-0 transition-opacity duration-300 ease-in-out',
+          addBorder ? 'opacity-100' : 'opacity-0',
         )}
       />
     </header>
