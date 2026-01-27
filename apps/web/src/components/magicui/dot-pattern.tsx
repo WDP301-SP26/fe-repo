@@ -20,13 +20,13 @@ export function DotPattern({
   className,
   ...props
 }: DotPatternProps) {
-  const id = "pattern-circle";
+  const id = 'pattern-circle';
 
   return (
     <svg
       aria-hidden="true"
       className={
-        "pointer-events-none absolute inset-0 h-full w-full fill-neutral-400/80"
+        'pointer-events-none absolute inset-0 h-full w-full fill-neutral-400/80'
       }
       {...props}
     >

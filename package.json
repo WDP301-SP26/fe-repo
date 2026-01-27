@@ -8,6 +8,11 @@
     "typescript-check": "tsc --noEmit --skipLibCheck"
   },
   "private": true,
+  "lint-staged": {
+    "*.{js,ts,tsx,json,css,scss,md}": [
+      "nx format:write"
+    ]
+  },
   "dependencies": {
     "@radix-ui/react-navigation-menu": "^1.2.14",
     "@radix-ui/react-switch": "^1.2.6",
@@ -63,6 +68,7 @@
     "jest": "^30.0.2",
     "jest-environment-jsdom": "^30.0.2",
     "jest-util": "^30.0.2",
+    "lint-staged": "^16.2.7",
     "nx": "22.4.1",
     "postcss": "8.4.38",
     "prettier": "~3.6.2",

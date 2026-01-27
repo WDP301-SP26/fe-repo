@@ -1,7 +1,7 @@
-import { Icons } from "@/components/icons";
-import { siteConfig } from "@/lib/config";
-import { ChevronRight } from "lucide-react";
-import Link from "next/link";
+import { Icons } from '@/components/icons';
+import { siteConfig } from '@/lib/config';
+import { ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -39,10 +39,10 @@ export default function Footer() {
         </div>
         <div className="max-w-6xl mx-auto border-t py-2 grid md:grid-cols-2 h-full justify-between w-full grid-cols-1 gap-1">
           <span className="text-sm tracking-tight text-foreground">
-            Copyright © {new Date().getFullYear()}{" "}
+            Copyright © {new Date().getFullYear()}{' '}
             <Link href="/" className="cursor-pointer">
               {siteConfig.name}
-            </Link>{" "}
+            </Link>{' '}
             - {siteConfig.description}
           </span>
           <ul className="flex justify-start md:justify-end text-sm tracking-tight text-foreground">

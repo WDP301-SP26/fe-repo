@@ -1,11 +1,11 @@
-import Section from "@/components/section";
+import Section from '@/components/section';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
-import { siteConfig } from "@/lib/config";
+} from '@/components/ui/accordion';
+import { siteConfig } from '@/lib/config';
 
 export default function FAQ() {
   return (
@@ -31,7 +31,7 @@ export default function FAQ() {
         </Accordion>
       </div>
       <h4 className="mb-12 text-center text-sm font-medium tracking-tight text-foreground/80">
-        Still have questions? Email us at{" "}
+        Still have questions? Email us at{' '}
         <a href={`mailto:${siteConfig.links.email}`} className="underline">
           {siteConfig.links.email}
         </a>

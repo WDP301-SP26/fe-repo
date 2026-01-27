@@ -1,25 +1,25 @@
-import BlurFade from "@/components/magicui/blur-fade";
-import Section from "@/components/section";
-import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Shield, Zap } from "lucide-react";
+import BlurFade from '@/components/magicui/blur-fade';
+import Section from '@/components/section';
+import { Card, CardContent } from '@/components/ui/card';
+import { Brain, Shield, Zap } from 'lucide-react';
 
 const problems = [
   {
-    title: "Data Overload",
+    title: 'Data Overload',
     description:
-      "Businesses struggle to make sense of vast amounts of complex data, missing out on valuable insights that could drive growth and innovation.",
+      'Businesses struggle to make sense of vast amounts of complex data, missing out on valuable insights that could drive growth and innovation.',
     icon: Brain,
   },
   {
-    title: "Slow Decision-Making",
+    title: 'Slow Decision-Making',
     description:
-      "Traditional data processing methods are too slow, causing businesses to lag behind market changes and miss crucial opportunities.",
+      'Traditional data processing methods are too slow, causing businesses to lag behind market changes and miss crucial opportunities.',
     icon: Zap,
   },
   {
-    title: "Data Security Concerns",
+    title: 'Data Security Concerns',
     description:
-      "With increasing cyber threats, businesses worry about the safety of their sensitive information when adopting new technologies.",
+      'With increasing cyber threats, businesses worry about the safety of their sensitive information when adopting new technologies.',
     icon: Shield,
   },
 ];

@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import Section from "@/components/section";
-import { buttonVariants } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { siteConfig } from "@/lib/config";
-import useWindowSize from "@/lib/hooks/use-window-size";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
-import { FaStar } from "react-icons/fa";
+import Section from '@/components/section';
+import { buttonVariants } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { siteConfig } from '@/lib/config';
+import useWindowSize from '@/lib/hooks/use-window-size';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { Check } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { FaStar } from 'react-icons/fa';
 
 export default function PricingSection() {
   const [isMonthly, setIsMonthly] = useState(true);
@@ -46,8 +46,8 @@ export default function PricingSection() {
                       index === siteConfig.pricing.length - 1
                         ? -30
                         : index === 0
-                        ? 30
-                        : 0,
+                          ? 30
+                          : 0,
                     scale:
                       index === 0 || index === siteConfig.pricing.length - 1
                         ? 0.94
@@ -58,7 +58,7 @@ export default function PricingSection() {
             viewport={{ once: true }}
             transition={{
               duration: 1.6,
-              type: "spring",
+              type: 'spring',
               stiffness: 100,
               damping: 30,
               delay: 0.4,
@@ -66,12 +66,12 @@ export default function PricingSection() {
             }}
             className={cn(
               `rounded-2xl border-[1px] p-6 bg-background text-center lg:flex lg:flex-col lg:justify-center relative`,
-              plan.isPopular ? "border-primary border-[2px]" : "border-border",
+              plan.isPopular ? 'border-primary border-[2px]' : 'border-border',
               index === 0 || index === siteConfig.pricing.length - 1
-                ? "z-0 transform translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg]"
-                : "z-10",
-              index === 0 && "origin-right",
-              index === siteConfig.pricing.length - 1 && "origin-left"
+                ? 'z-0 transform translate-x-0 translate-y-0 -translate-z-[50px] rotate-y-[10deg]'
+                : 'z-10',
+              index === 0 && 'origin-right',
+              index === siteConfig.pricing.length - 1 && 'origin-left',
             )}
           >
             {plan.isPopular && (
@@ -90,7 +90,7 @@ export default function PricingSection() {
                 <span className="text-5xl font-bold tracking-tight text-foreground">
                   {isMonthly ? plan.price : plan.yearlyPrice}
                 </span>
-                {plan.period !== "Next 3 months" && (
+                {plan.period !== 'Next 3 months' && (
                   <span className="text-sm font-semibold leading-6 tracking-wide text-muted-foreground">
                     / {plan.period}
                   </span>
@@ -98,7 +98,7 @@ export default function PricingSection() {
               </p>
 
               <p className="text-xs leading-5 text-muted-foreground">
-                {isMonthly ? "billed monthly" : "billed annually"}
+                {isMonthly ? 'billed monthly' : 'billed annually'}
               </p>
 
               <ul className="mt-5 gap-2 flex flex-col">
@@ -116,13 +116,13 @@ export default function PricingSection() {
                 href={plan.href}
                 className={cn(
                   buttonVariants({
-                    variant: "outline",
+                    variant: 'outline',
                   }),
-                  "group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter",
-                  "transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-primary hover:ring-offset-1 hover:bg-primary hover:text-white",
+                  'group relative w-full gap-2 overflow-hidden text-lg font-semibold tracking-tighter',
+                  'transform-gpu ring-offset-current transition-all duration-300 ease-out hover:ring-2 hover:ring-primary hover:ring-offset-1 hover:bg-primary hover:text-white',
                   plan.isPopular
-                    ? "bg-primary text-white"
-                    : "bg-white text-black"
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-black',
                 )}
               >
                 {plan.buttonText}

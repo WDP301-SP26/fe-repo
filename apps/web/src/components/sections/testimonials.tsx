@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import Marquee from "@/components/magicui/marquee";
-import Section from "@/components/section";
-import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
-import { Star } from "lucide-react";
-import Image from "next/image";
+import Marquee from '@/components/magicui/marquee';
+import Section from '@/components/section';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
+import { Star } from 'lucide-react';
+import Image from 'next/image';
 
 export const Highlight = ({
   children,
@@ -17,8 +17,8 @@ export const Highlight = ({
   return (
     <span
       className={cn(
-        "bg-primary/20 p-1 py-0.5 font-bold text-primary dark:bg-primary/20 dark:text-primary",
-        className
+        'bg-primary/20 p-1 py-0.5 font-bold text-primary dark:bg-primary/20 dark:text-primary',
+        className,
       )}
     >
       {children}
@@ -45,12 +45,12 @@ export const TestimonialCard = ({
 }: TestimonialCardProps) => (
   <div
     className={cn(
-      "mb-4 flex w-full cursor-pointer break-inside-avoid flex-col items-center justify-between gap-6 rounded-xl p-4",
+      'mb-4 flex w-full cursor-pointer break-inside-avoid flex-col items-center justify-between gap-6 rounded-xl p-4',
       // light styles
-      " border border-neutral-200 bg-white",
+      ' border border-neutral-200 bg-white',
       // dark styles
-      "dark:bg-black dark:[border:1px_solid_rgba(255,255,255,.1)] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]",
-      className
+      'dark:bg-black dark:[border:1px_solid_rgba(255,255,255,.1)] dark:[box-shadow:0_-20px_80px_-20px_#ffffff1f_inset]',
+      className,
     )}
     {...props} // Spread the rest of the props here
   >
@@ -69,7 +69,7 @@ export const TestimonialCard = ({
       <Image
         width={40}
         height={40}
-        src={img || ""}
+        src={img || ''}
         alt={name}
         className="h-10 w-10 rounded-full ring-1 ring-border ring-offset-4"
       />
@@ -84,24 +84,24 @@ export const TestimonialCard = ({
 
 const testimonials = [
   {
-    name: "Alex Rivera",
-    role: "CTO at InnovateTech",
-    img: "https://randomuser.me/api/portraits/men/91.jpg",
+    name: 'Alex Rivera',
+    role: 'CTO at InnovateTech',
+    img: 'https://randomuser.me/api/portraits/men/91.jpg',
     description: (
       <p>
         The AI-driven analytics from #QuantumInsights have revolutionized our
         product development cycle.
         <Highlight>
           Insights are now more accurate and faster than ever.
-        </Highlight>{" "}
+        </Highlight>{' '}
         A game-changer for tech companies.
       </p>
     ),
   },
   {
-    name: "Samantha Lee",
-    role: "Marketing Director at NextGen Solutions",
-    img: "https://randomuser.me/api/portraits/women/12.jpg",
+    name: 'Samantha Lee',
+    role: 'Marketing Director at NextGen Solutions',
+    img: 'https://randomuser.me/api/portraits/women/12.jpg',
     description: (
       <p>
         Implementing #AIStream&apos;s customer prediction model has drastically
@@ -112,9 +112,9 @@ const testimonials = [
     ),
   },
   {
-    name: "Raj Patel",
-    role: "Founder & CEO at StartUp Grid",
-    img: "https://randomuser.me/api/portraits/men/45.jpg",
+    name: 'Raj Patel',
+    role: 'Founder & CEO at StartUp Grid',
+    img: 'https://randomuser.me/api/portraits/men/45.jpg',
     description: (
       <p>
         As a startup, we need to move fast and stay ahead. #CodeAI&apos;s
@@ -125,9 +125,9 @@ const testimonials = [
     ),
   },
   {
-    name: "Emily Chen",
-    role: "Product Manager at Digital Wave",
-    img: "https://randomuser.me/api/portraits/women/83.jpg",
+    name: 'Emily Chen',
+    role: 'Product Manager at Digital Wave',
+    img: 'https://randomuser.me/api/portraits/women/83.jpg',
     description: (
       <p>
         #VoiceGen&apos;s AI-driven voice synthesis has made creating global
@@ -138,111 +138,111 @@ const testimonials = [
     ),
   },
   {
-    name: "Michael Brown",
-    role: "Data Scientist at FinTech Innovations",
-    img: "https://randomuser.me/api/portraits/men/1.jpg",
+    name: 'Michael Brown',
+    role: 'Data Scientist at FinTech Innovations',
+    img: 'https://randomuser.me/api/portraits/men/1.jpg',
     description: (
       <p>
         Leveraging #DataCrunch&apos;s AI for our financial models has given us
         an edge in predictive accuracy.
         <Highlight>
           Our investment strategies are now powered by real-time data analytics.
-        </Highlight>{" "}
+        </Highlight>{' '}
         Transformative for the finance industry.
       </p>
     ),
   },
   {
-    name: "Linda Wu",
-    role: "VP of Operations at LogiChain Solutions",
-    img: "https://randomuser.me/api/portraits/women/5.jpg",
+    name: 'Linda Wu',
+    role: 'VP of Operations at LogiChain Solutions',
+    img: 'https://randomuser.me/api/portraits/women/5.jpg',
     description: (
       <p>
         #LogiTech&apos;s supply chain optimization tools have drastically
         reduced our operational costs.
         <Highlight>
           Efficiency and accuracy in logistics have never been better.
-        </Highlight>{" "}
+        </Highlight>{' '}
       </p>
     ),
   },
   {
-    name: "Carlos Gomez",
-    role: "Head of R&D at EcoInnovate",
-    img: "https://randomuser.me/api/portraits/men/14.jpg",
+    name: 'Carlos Gomez',
+    role: 'Head of R&D at EcoInnovate',
+    img: 'https://randomuser.me/api/portraits/men/14.jpg',
     description: (
       <p>
         By integrating #GreenTech&apos;s sustainable energy solutions,
         we&apos;ve seen a significant reduction in carbon footprint.
         <Highlight>
           Leading the way in eco-friendly business practices.
-        </Highlight>{" "}
+        </Highlight>{' '}
         Pioneering change in the industry.
       </p>
     ),
   },
   {
-    name: "Aisha Khan",
-    role: "Chief Marketing Officer at Fashion Forward",
-    img: "https://randomuser.me/api/portraits/women/56.jpg",
+    name: 'Aisha Khan',
+    role: 'Chief Marketing Officer at Fashion Forward',
+    img: 'https://randomuser.me/api/portraits/women/56.jpg',
     description: (
       <p>
         #TrendSetter&apos;s market analysis AI has transformed how we approach
         fashion trends.
         <Highlight>
           Our campaigns are now data-driven with higher customer engagement.
-        </Highlight>{" "}
+        </Highlight>{' '}
         Revolutionizing fashion marketing.
       </p>
     ),
   },
   {
-    name: "Tom Chen",
-    role: "Director of IT at HealthTech Solutions",
-    img: "https://randomuser.me/api/portraits/men/18.jpg",
+    name: 'Tom Chen',
+    role: 'Director of IT at HealthTech Solutions',
+    img: 'https://randomuser.me/api/portraits/men/18.jpg',
     description: (
       <p>
         Implementing #MediCareAI in our patient care systems has improved
         patient outcomes significantly.
         <Highlight>
           Technology and healthcare working hand in hand for better health.
-        </Highlight>{" "}
+        </Highlight>{' '}
         A milestone in medical technology.
       </p>
     ),
   },
   {
-    name: "Sofia Patel",
-    role: "CEO at EduTech Innovations",
-    img: "https://randomuser.me/api/portraits/women/73.jpg",
+    name: 'Sofia Patel',
+    role: 'CEO at EduTech Innovations',
+    img: 'https://randomuser.me/api/portraits/women/73.jpg',
     description: (
       <p>
         #LearnSmart&apos;s AI-driven personalized learning plans have doubled
         student performance metrics.
         <Highlight>
           Education tailored to every learner&apos;s needs.
-        </Highlight>{" "}
+        </Highlight>{' '}
         Transforming the educational landscape.
       </p>
     ),
   },
   {
-    name: "Jake Morrison",
-    role: "CTO at SecureNet Tech",
-    img: "https://randomuser.me/api/portraits/men/25.jpg",
+    name: 'Jake Morrison',
+    role: 'CTO at SecureNet Tech',
+    img: 'https://randomuser.me/api/portraits/men/25.jpg',
     description: (
       <p>
         With #CyberShield&apos;s AI-powered security systems, our data
         protection levels are unmatched.
-        <Highlight>Ensuring safety and trust in digital spaces.</Highlight>{" "}
+        <Highlight>Ensuring safety and trust in digital spaces.</Highlight>{' '}
         Redefining cybersecurity standards.
       </p>
     ),
   },
   {
-    name: "Nadia Ali",
-    role: "Product Manager at Creative Solutions",
-    img: "https://randomuser.me/api/portraits/women/78.jpg",
+    name: 'Nadia Ali',
+    role: 'Product Manager at Creative Solutions',
+    img: 'https://randomuser.me/api/portraits/women/78.jpg',
     description: (
       <p>
         #DesignPro&apos;s AI has streamlined our creative process, enhancing
@@ -253,9 +253,9 @@ const testimonials = [
     ),
   },
   {
-    name: "Omar Farooq",
-    role: "Founder at Startup Hub",
-    img: "https://randomuser.me/api/portraits/men/54.jpg",
+    name: 'Omar Farooq',
+    role: 'Founder at Startup Hub',
+    img: 'https://randomuser.me/api/portraits/men/54.jpg',
     description: (
       <p>
         #VentureAI&apos;s insights into startup ecosystems have been invaluable
@@ -283,9 +283,9 @@ export default function Testimonials() {
                 vertical
                 key={i}
                 className={cn({
-                  "[--duration:60s]": i === 1,
-                  "[--duration:30s]": i === 2,
-                  "[--duration:70s]": i === 3,
+                  '[--duration:60s]': i === 1,
+                  '[--duration:30s]': i === 2,
+                  '[--duration:70s]': i === 3,
                 })}
               >
                 {testimonials.slice(i * 3, (i + 1) * 3).map((card, idx) => (
