@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums from Backend
+enum Role {
+  STUDENT
+  GROUP_LEADER
+  LECTURER
+  ADMIN
+}
+
+enum IntegrationProvider {
+  GITHUB
+  JIRA
+  ATLASSIAN
+}
+
+// User Model
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  full_name     String?
+  avatar_url    String?   @db.VarChar(255)
+  role          Role      @default(STUDENT)
+  
+  integration_tokens IntegrationToken[]
+
+  @@map("User")
+}
+
+// IntegrationToken Model (Maps to NextAuth Account)
+model IntegrationToken {
+  id                String               @id @default(uuid())
+  user_id           String               @db.Uuid
+  user              User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  provider          IntegrationProvider
+  provider_user_id  String               @db.VarChar(255)
+  provider_username String?              @db.VarChar(255)
+  provider_email    String?              @db.VarChar(255)
+  access_token      String?              @db.Text
+  refresh_token     String?              @db.Text
+  expires_at        BigInt?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@unique([provider, provider_user_id])
+  @@map("IntegrationToken")
+}

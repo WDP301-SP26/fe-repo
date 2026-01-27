@@ -1,8 +1,10 @@
+import { AuthListener } from '@/components/auth-listener';
 import { TailwindIndicator } from '@/components/tailwind-indicator';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn, constructMetadata } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
+import { SessionProvider } from 'next-auth/react';
 import './global.css';
 
 export const metadata: Metadata = constructMetadata({});
@@ -31,15 +33,18 @@ export default function RootLayout({
           'min-h-screen bg-background antialiased w-full mx-auto scroll-smooth',
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-        >
-          {children}
-          <ThemeToggle />
-          <TailwindIndicator />
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+          >
+            <AuthListener />
+            {children}
+            <ThemeToggle />
+            <TailwindIndicator />
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   );

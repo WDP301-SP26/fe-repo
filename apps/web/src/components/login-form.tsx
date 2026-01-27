@@ -11,7 +11,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { signIn } from 'next-auth/react';
 
 export function LoginForm({
   className,
@@ -34,7 +33,9 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => signIn('github')}
+                  onClick={() =>
+                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/github`)
+                  }
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -44,7 +45,14 @@ export function LoginForm({
                   </svg>
                   Login with GitHub
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                  onClick={() =>
+                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/jira`)
+                  }
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
                       d="M11.53 16.173v-5.26h5.36l-5.36 5.26zM24 10.914v5.26h-5.36l5.36-5.26zM11.53 10.914h-5.36L.81 5.653h5.36l5.36 5.26zM1.16 3.013h-5.36L6.53-2.14h5.36l-5.36 5.26z"
