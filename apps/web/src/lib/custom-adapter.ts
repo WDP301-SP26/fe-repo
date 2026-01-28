@@ -104,14 +104,14 @@ export function CustomAdapter(): Adapter {
           user_id: account.userId,
           provider: providerEnum,
           provider_user_id: account.providerAccountId, // Map providerAccountId -> provider_user_id
-          type: account.type,
+
           access_token: account.access_token,
           refresh_token: account.refresh_token,
-          expires_at: account.expires_at, // BE schema has BigInt, NextAuth passes number. Prisma usually handles if compatible logic
+          expires_at: account.expires_at ? BigInt(account.expires_at) : null,
           token_type: account.token_type,
           scope: account.scope,
           id_token: account.id_token,
-          session_state: account.session_state,
+          session_state: account.session_state as string,
         },
       });
       // Adapter expects Account or void. We return simple Account object

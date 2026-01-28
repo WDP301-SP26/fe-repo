@@ -5,6 +5,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { cn, constructMetadata } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
 import { SessionProvider } from 'next-auth/react';
+import { Suspense } from 'react';
 import './global.css';
 
 export const metadata: Metadata = constructMetadata({});
@@ -39,7 +40,9 @@ export default function RootLayout({
             defaultTheme="light"
             enableSystem={false}
           >
-            <AuthListener />
+            <Suspense fallback={null}>
+              <AuthListener />
+            </Suspense>
             {children}
             <ThemeToggle />
             <TailwindIndicator />
