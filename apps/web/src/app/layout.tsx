@@ -1,8 +1,12 @@
+import { AuthListener } from '@/components/auth-listener';
+import { MSWProvider } from '@/components/msw-provider';
 import { TailwindIndicator } from '@/components/tailwind-indicator';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { cn, constructMetadata } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
+import { SessionProvider } from 'next-auth/react';
+import { Suspense } from 'react';
 import './global.css';
 
 export const metadata: Metadata = constructMetadata({});
@@ -31,15 +35,22 @@ export default function RootLayout({
           'min-h-screen bg-background antialiased w-full mx-auto scroll-smooth',
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
-        >
-          {children}
-          <ThemeToggle />
-          <TailwindIndicator />
-        </ThemeProvider>
+        <MSWProvider>
+          <SessionProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="light"
+              enableSystem={false}
+            >
+              <Suspense fallback={null}>
+                <AuthListener />
+              </Suspense>
+              {children}
+              <ThemeToggle />
+              <TailwindIndicator />
+            </ThemeProvider>
+          </SessionProvider>
+        </MSWProvider>
       </body>
     </html>
   );

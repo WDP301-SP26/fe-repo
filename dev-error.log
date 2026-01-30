@@ -1,0 +1,113 @@
+2026-01-29T15:36:00.286Z follow-redirects options {
+  maxRedirects: 21,
+  maxBodyLength: Infinity,
+  protocol: 'https:',
+  path: '/nx-cloud/runs/splash',
+  method: 'GET',
+  headers: [Object: null prototype] {
+    Accept: 'application/json, text/plain, */*',
+    'Nx-Cloud-Id': '696f1f1bd590b2df088216c8',
+    'Nx-Cloud-Client-Version': '2601.27.7',
+    'User-Agent': 'axios/1.1.3',
+    'Accept-Encoding': 'gzip, deflate, br'
+  },
+  agents: { http: undefined, https: undefined },
+  auth: undefined,
+  beforeRedirect: [Function: _0x56e0c3],
+  beforeRedirects: { proxy: [Function: _0x19ee3a] },
+  hostname: 'cloud.nx.app',
+  port: '',
+  agent: undefined,
+  nativeProtocols: {
+    'http:': {
+      _connectionListener: [Function: connectionListener],
+      METHODS: [Array],
+      STATUS_CODES: [Object],
+      Agent: [Function],
+      ClientRequest: [Function: ClientRequest],
+      IncomingMessage: [Function: IncomingMessage],
+      OutgoingMessage: [Function: OutgoingMessage],
+      Server: [Function: Server],
+      ServerResponse: [Function: ServerResponse],
+      createServer: [Function: createServer],
+      validateHeaderName: [Function],
+      validateHeaderValue: [Function],
+      get: [Function: get],
+      request: [Function: request],
+      setMaxIdleHTTPParsers: [Function: setMaxIdleHTTPParsers],
+      maxHeaderSize: [Getter],
+      globalAgent: [Getter/Setter],
+      WebSocket: [Getter],
+      CloseEvent: [Getter],
+      MessageEvent: [Getter]
+    },
+    'https:': {
+      Agent: [Function: Agent],
+      globalAgent: [Agent],
+      Server: [Function: Server],
+      createServer: [Function: createServer],
+      get: [Function: get],
+      request: [Function: request]
+    }
+  }
+}
+
+> nx run @fe-repo/web:dev
+
+> next dev
+
+2026-01-29T15:36:00.667Z follow-redirects options {
+  maxRedirects: 21,
+  maxBodyLength: Infinity,
+  protocol: 'https:',
+  path: '/nx-cloud/v2/runs/start',
+  method: 'POST',
+  headers: [Object: null prototype] {
+    Accept: 'application/json, text/plain, */*',
+    'Content-Type': 'application/json',
+    'Nx-Cloud-Id': '696f1f1bd590b2df088216c8',
+    'Nx-Cloud-Client-Version': '2601.27.7',
+    'User-Agent': 'axios/1.1.3',
+    'Content-Length': '373',
+    'Accept-Encoding': 'gzip, deflate, br'
+  },
+  agents: { http: undefined, https: undefined },
+  auth: undefined,
+  beforeRedirect: [Function: _0x56e0c3],
+  beforeRedirects: { proxy: [Function: _0x19ee3a] },
+  hostname: 'cloud.nx.app',
+  port: '',
+  agent: undefined,
+  nativeProtocols: {
+    'http:': {
+      _connectionListener: [Function: connectionListener],
+      METHODS: [Array],
+      STATUS_CODES: [Object],
+      Agent: [Function],
+      ClientRequest: [Function: ClientRequest],
+      IncomingMessage: [Function: IncomingMessage],
+      OutgoingMessage: [Function: OutgoingMessage],
+      Server: [Function: Server],
+      ServerResponse: [Function: ServerResponse],
+      createServer: [Function: createServer],
+      validateHeaderName: [Function],
+      validateHeaderValue: [Function],
+      get: [Function: get],
+      request: [Function: request],
+      setMaxIdleHTTPParsers: [Function: setMaxIdleHTTPParsers],
+      maxHeaderSize: [Getter],
+      globalAgent: [Getter/Setter],
+      WebSocket: [Getter],
+      CloseEvent: [Getter],
+      MessageEvent: [Getter]
+    },
+    'https:': {
+      Agent: [Function: Agent],
+      globalAgent: [Agent],
+      Server: [Function: Server],
+      createServer: [Function: createServer],
+      get: [Function: get],
+      request: [Function: request]
+    }
+  }
+}

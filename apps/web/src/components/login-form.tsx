@@ -11,12 +11,56 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<'div'>) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+
+    try {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+      console.log('✅ Login success:', data);
+
+      // Redirect based on user role
+      if (data.user?.role === 'lecturer') {
+        router.push('/lecturer');
+      } else if (data.user?.role === 'admin') {
+        router.push('/dashboard/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (err) {
+      console.error('❌ Login error:', err);
+      setError('Invalid email or password');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
@@ -27,14 +71,16 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
               <div className="flex flex-col gap-4">
                 <Button
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() => signIn('github')}
+                  onClick={() =>
+                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/github`)
+                  }
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -44,7 +90,14 @@ export function LoginForm({
                   </svg>
                   Login with GitHub
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  type="button"
+                  onClick={() =>
+                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/jira`)
+                  }
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
                       d="M11.53 16.173v-5.26h5.36l-5.36 5.26zM24 10.914v5.26h-5.36l5.36-5.26zM11.53 10.914h-5.36L.81 5.653h5.36l5.36 5.26zM1.16 3.013h-5.36L6.53-2.14h5.36l-5.36 5.26z"
@@ -60,14 +113,19 @@ export function LoginForm({
                   Or continue with
                 </span>
               </div>
+              {error && (
+                <div className="text-sm text-red-500 text-center">{error}</div>
+              )}
               <div className="grid gap-6">
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
+                    name="email"
                     type="email"
                     placeholder="m@example.com"
                     required
+                    disabled={isLoading}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -80,10 +138,16 @@ export function LoginForm({
                       Forgot your password?
                     </a>
                   </div>
-                  <Input id="password" type="password" required />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    disabled={isLoading}
+                  />
                 </div>
-                <Button type="submit" className="w-full">
-                  Login
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? 'Signing in...' : 'Login'}
                 </Button>
               </div>
               <div className="text-center text-sm">
