@@ -78,9 +78,13 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() =>
-                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/github`)
-                  }
+                  onClick={() => {
+                    const apiUrl =
+                      process.env.NEXT_PUBLIC_API_URL ||
+                      'http://localhost:8080';
+                    const redirectUri = window.location.origin;
+                    window.location.href = `${apiUrl}/api/auth/github?redirect_uri=${redirectUri}`;
+                  }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -94,9 +98,13 @@ export function LoginForm({
                   variant="outline"
                   className="w-full"
                   type="button"
-                  onClick={() =>
-                    (window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/jira`)
-                  }
+                  disabled
+                  title="Jira OAuth requires HTTPS - Coming soon"
+                  onClick={() => {
+                    alert(
+                      'Jira OAuth is temporarily disabled. Requires HTTPS setup.',
+                    );
+                  }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path

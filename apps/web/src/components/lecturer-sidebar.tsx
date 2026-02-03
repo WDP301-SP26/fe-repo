@@ -22,7 +22,7 @@ const lecturerMenuItems = [
     icon: Home,
   },
   {
-    title: 'My Groups',
+    title: 'My Student Groups',
     url: '/lecturer/groups',
     icon: Users2,
   },
