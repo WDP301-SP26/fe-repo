@@ -11,3 +11,50 @@
 - If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
 
 <!-- nx configuration end-->
+
+## Next.js 16 Proxy (Middleware)
+
+**Important:** Next.js 16 renamed `middleware.ts` to `proxy.ts`. Both files serve the same purpose but Next.js only allows **one** to exist.
+
+### File Location
+
+- **Correct:** `apps/web/src/proxy.ts`
+- **Incorrect:** `apps/web/src/middleware.ts` (will cause build error)
+
+### Usage
+
+The proxy file is used for:
+
+- Route protection (authentication checks)
+- Redirects based on auth state
+- Request/response modification
+
+### Example: Cookie-based Authentication
+
+```typescript
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export default function proxy(request: NextRequest) {
+  const authToken = request.cookies.get('auth_token');
+
+  if (!authToken && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/signin', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/protected/:path*'],
+};
+```
+
+### Common Error
+
+```
+Error: Both middleware file "./src\src\middleware.ts" and
+proxy file "./src\src\proxy.ts" are detected.
+```
+
+**Solution:** Delete `middleware.ts` and use only `proxy.ts`.
