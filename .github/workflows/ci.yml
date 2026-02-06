@@ -1,14 +1,10 @@
-name: CI
+name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-
-permissions:
-  actions: read
-  contents: read
 
 jobs:
   main:
@@ -20,15 +16,25 @@ jobs:
 
       - uses: pnpm/action-setup@v2
         with:
-          version: 9
+          version: 8
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v3
         with:
-          node-version: 20
+          node-version: 18
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile
 
       - uses: nrwl/nx-set-shas@v4
 
-      - run: pnpm exec nx affected -t lint test build
+      - run: pnpm exec nx affected -t lint
+      - run: pnpm exec nx affected -t test
+      - run: pnpm exec nx affected -t build --prod
+
+      # Build Docker Image (Only on Main push or if build succeeds)
+      # Note: This uses the artifacts from the previous build step
+      # because our Dockerfile copies from .next/standalone
+      - name: Build Docker Image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker build -t jihub-web -f apps/web/Dockerfile .
