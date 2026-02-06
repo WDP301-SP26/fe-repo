@@ -1,16 +1,31 @@
-import NextAuth from 'next-auth';
-import { authConfig } from './auth.config';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-const { auth } = NextAuth(authConfig);
+export default function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-export default auth((req) => {
-  if (!req.auth && req.nextUrl.pathname !== '/signin') {
-    const newUrl = new URL('/signin', req.nextUrl.origin);
-    return Response.redirect(newUrl);
+  // Public routes
+  const publicRoutes = ['/', '/signin', '/signup', '/auth/callback'];
+  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+    return NextResponse.next();
   }
-  return; // Explicit return to satisfy TS7030
-});
+
+  // Check authentication for protected routes
+  const authToken = request.cookies.get('auth_token');
+
+  if (!authToken) {
+    // Redirect to login if not authenticated
+    return NextResponse.redirect(new URL('/signin', request.url));
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|signin).*)'],
+  matcher: [
+    '/dashboard/:path*',
+    '/lecturer/:path*',
+    '/projects/:path*',
+    '/settings/:path*',
+  ],
 };
