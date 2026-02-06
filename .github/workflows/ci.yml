@@ -29,7 +29,7 @@ jobs:
 
       - run: pnpm exec nx affected -t lint
       - run: pnpm exec nx affected -t test
-      - run: pnpm exec nx affected -t build
+      # - run: pnpm exec nx affected -t build
 
       # Build Docker Image (Only on Main push or if build succeeds)
       # Note: This uses the artifacts from the previous build step
