@@ -82,7 +82,9 @@ export function LoginForm({
                     const apiUrl =
                       process.env.NEXT_PUBLIC_API_URL ||
                       'http://localhost:8080';
-                    const redirectUri = window.location.origin;
+                    const redirectUri =
+                      process.env.NEXT_PUBLIC_FRONTEND_URL ||
+                      window.location.origin;
                     window.location.href = `${apiUrl}/api/auth/github?redirect_uri=${redirectUri}`;
                   }}
                 >
