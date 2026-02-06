@@ -58,3 +58,22 @@ proxy file "./src\src\proxy.ts" are detected.
 ```
 
 **Solution:** Delete `middleware.ts` and use only `proxy.ts`.
+
+## Build Commands
+
+### Build Web Application
+
+```bash
+pnpm exec nx run @fe-repo/web:build
+```
+
+Or using shorthand:
+
+```bash
+nx build web
+```
+
+### Common Build Issues
+
+- **File lock error (Windows):** Clear Nx cache with `nx reset` and rebuild
+- **Port mismatch:** Verify `NEXT_PUBLIC_API_URL` in `.env.local` points to correct backend port (8080)
