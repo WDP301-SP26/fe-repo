@@ -1,5 +1,6 @@
 'use client';
 
+import { LogoutButton } from '@/components/LogoutButton';
 import {
   Card,
   CardContent,
@@ -157,19 +158,22 @@ export default function LecturerDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
-        <h3 className="font-semibold text-primary">🎓 Test Credentials</h3>
-        <ul className="mt-2 space-y-1 text-sm">
-          <li>
-            <strong>Email:</strong> lecturer1@fe.edu.vn
-          </li>
-          <li>
-            <strong>Password:</strong> password123
-          </li>
-          <li className="text-muted-foreground">
-            (For development only - mock authentication)
-          </li>
-        </ul>
+      <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4 md:flex-row md:items-center">
+        <div>
+          <h3 className="font-semibold text-primary">🎓 Test Credentials</h3>
+          <ul className="mt-2 space-y-1 text-sm">
+            <li>
+              <strong>Email:</strong> lecturer1@fe.edu.vn
+            </li>
+            <li>
+              <strong>Password:</strong> password123
+            </li>
+            <li className="text-muted-foreground">
+              (For development only - mock authentication)
+            </li>
+          </ul>
+        </div>
+        <LogoutButton />
       </div>
     </div>
   );

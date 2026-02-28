@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -33,7 +34,8 @@ export function LoginForm({
     const password = formData.get('password') as string;
 
     try {
-      const response = await fetch('/api/auth/signin', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -43,20 +45,33 @@ export function LoginForm({
         throw new Error('Login failed');
       }
 
-      const data = await response.json();
-      console.log('✅ Login success:', data);
+      const backendData = await response.json();
+      console.log('✅ Backend login success, establishing Next.js session...');
+
+      // Establish NextAuth session using backend token
+      const signInResult = await signIn('credentials', {
+        token: backendData.access_token,
+        user: JSON.stringify(backendData.user),
+        redirect: false,
+      });
+
+      if (signInResult?.error) {
+        throw new Error(signInResult.error);
+      }
 
       // Save to Zustand store
-      useAuthStore.getState().setUser(data.user);
+      useAuthStore.getState().setUser(backendData.user);
 
-      // Redirect based on user role
-      if (data.user?.role === 'lecturer') {
+      // Redirect based on user role (normalize uppercase backend enums)
+      const userRole = backendData.user?.role?.toLowerCase();
+      if (userRole === 'lecturer') {
         router.push('/lecturer');
-      } else if (data.user?.role === 'admin') {
+      } else if (userRole === 'admin') {
         router.push('/dashboard/admin');
       } else {
-        router.push('/dashboard');
+        router.push('/student/projects');
       }
+      router.refresh();
     } catch (err) {
       console.error('❌ Login error:', err);
       setError('Invalid email or password');

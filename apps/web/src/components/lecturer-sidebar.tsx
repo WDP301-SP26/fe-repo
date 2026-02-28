@@ -2,9 +2,11 @@
 
 import { AlertTriangle, BarChart3, Home, Settings, Users2 } from 'lucide-react';
 
+import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,6 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useAuthStore } from '@/stores/authStore';
 
 const lecturerMenuItems = [
   {
@@ -43,6 +46,8 @@ const lecturerMenuItems = [
 ];
 
 export function LecturerSidebar() {
+  const user = useAuthStore((state) => state.user);
+
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
@@ -77,6 +82,17 @@ export function LecturerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        {user && (
+          <NavUser
+            user={{
+              name: user.full_name,
+              email: user.email,
+              avatar: user.avatar_url || '',
+            }}
+          />
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }

@@ -34,7 +34,8 @@ export async function fetchAPI<T>(
 // Auth API methods
 export const authAPI = {
   getCurrentUser: () => fetchAPI<any>('/api/auth/me'),
-  getLinkedAccounts: () => fetchAPI('/api/auth/linked-accounts'),
+  getLinkedAccounts: () =>
+    fetchAPI<{ provider: string }[]>('/api/auth/linked-accounts'),
   unlinkProvider: (provider: 'GITHUB' | 'JIRA') =>
     fetchAPI(`/api/auth/unlink/${provider}`, { method: 'DELETE' }),
   logout: () =>
@@ -42,4 +43,13 @@ export const authAPI = {
       // Logout endpoint doesn't exist yet in backend, but that's okay
       console.warn('Backend logout endpoint not implemented yet');
     }),
+};
+
+// GitHub API methods
+export const githubAPI = {
+  getRepositories: () => fetchAPI<any>('/api/github/repos'),
+  getCommits: (owner: string, repo: string) =>
+    fetchAPI<any>(`/api/github/repos/${owner}/${repo}/commits`),
+  getContributorStats: (owner: string, repo: string) =>
+    fetchAPI<any>(`/api/github/repos/${owner}/${repo}/contributors-stats`),
 };
