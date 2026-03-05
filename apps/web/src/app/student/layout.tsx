@@ -1,4 +1,3 @@
-import { RequireGithubWrapper } from '@/components/require-github-wrapper';
 import { StudentSidebar } from '@/components/student-sidebar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -23,11 +22,9 @@ export default function StudentLayout({
             <span className="font-semibold text-lg">Student Workspace</span>
           </div>
         </header>
-        <RequireGithubWrapper>
-          <main className="flex flex-1 flex-col gap-4 p-6 bg-muted/10 min-h-[calc(100vh-4rem)]">
-            {children}
-          </main>
-        </RequireGithubWrapper>
+        <main className="flex flex-1 flex-col gap-4 p-6 bg-muted/10 min-h-[calc(100vh-4rem)]">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

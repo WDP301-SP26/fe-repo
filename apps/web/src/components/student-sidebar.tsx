@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
-import { FolderGit2, GraduationCap, Home, Settings } from 'lucide-react';
+import { FolderGit2, GraduationCap, Home, Settings, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
@@ -25,6 +25,11 @@ const studentMenuItems = [
     title: 'Overview',
     url: '/student',
     icon: Home,
+  },
+  {
+    title: 'My Groups',
+    url: '/student/groups',
+    icon: Users,
   },
   {
     title: 'My Projects',
@@ -39,7 +44,7 @@ const studentMenuItems = [
 ];
 
 export function StudentSidebar() {
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, token } = useAuthStore();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -52,10 +57,10 @@ export function StudentSidebar() {
       }
     };
 
-    if (!user) {
+    if (!user && token) {
       fetchUser();
     }
-  }, [user, setUser]);
+  }, [user, setUser, token]);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
