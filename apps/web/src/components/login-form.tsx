@@ -60,7 +60,9 @@ export function LoginForm({
       }
 
       // Save to Zustand store
-      useAuthStore.getState().setUser(backendData.user);
+      useAuthStore
+        .getState()
+        .setUser(backendData.user, backendData.access_token);
 
       // Redirect based on user role (normalize uppercase backend enums)
       const userRole = backendData.user?.role?.toLowerCase();

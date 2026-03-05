@@ -11,7 +11,7 @@ export default function AuthCallbackPage() {
     // We arrived here from the backend after a successful OAuth linking process.
     // Give it a brief moment so the user sees a confirmation spinner, then sweep them to the dashboard.
     const timer = setTimeout(() => {
-      router.push('/student/projects');
+      router.push('/student/settings');
       router.refresh();
     }, 1500);
 

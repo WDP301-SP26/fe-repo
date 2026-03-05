@@ -9,39 +9,41 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { authAPI } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import { Github, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 
 export function RequireGithubWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isLinked, setIsLinked] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const token = useAuthStore((state) => state.token);
+  const {
+    data: accounts,
+    error: fetchError,
+    isLoading,
+  } = useSWR(
+    token ? '/api/auth/linked-accounts' : null,
+    authAPI.getLinkedAccounts,
+  );
 
-  useEffect(() => {
-    const checkLinkedAccounts = async () => {
-      try {
-        const accounts = await authAPI.getLinkedAccounts();
-        const hasGithub = accounts.some((acc) => acc.provider === 'GITHUB');
-        setIsLinked(hasGithub);
-      } catch (err) {
-        console.error('Failed to check linked accounts:', err);
-        setError('Could not verify account status. Please try refreshing.');
-        setIsLinked(false);
-      }
-    };
+  const isLinked =
+    accounts?.some((acc: any) => acc.provider === 'GITHUB') ?? null;
+  const error = fetchError?.message
+    ? 'Could not verify account status. Please try refreshing.'
+    : null;
 
-    checkLinkedAccounts();
-  }, []);
-
-  if (isLinked === null) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (isLoading || token === null || isLinked === null) {
+    if (error && !isLoading) {
+      // Fall through to error state
+    } else {
+      return (
+        <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
   }
 
   if (!isLinked) {
