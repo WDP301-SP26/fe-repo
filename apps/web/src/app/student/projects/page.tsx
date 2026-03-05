@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authAPI, githubAPI } from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 import {
   AlertCircle,
   ExternalLink,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 
 interface GitHubRepo {
   id: number;
@@ -38,37 +40,42 @@ interface GitHubRepo {
 export default function StudentProjectsPage() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [filteredRepos, setFilteredRepos] = useState<GitHubRepo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isJiraLinked, setIsJiraLinked] = useState<boolean>(false);
 
+  const token = useAuthStore((state) => state.token);
+
+  // Use SWR to handle fetching and avoid hydration race conditions
+  const {
+    data: reposData,
+    error: reposError,
+    isLoading: isReposLoading,
+  } = useSWR(token ? '/api/github/repos' : null, githubAPI.getRepositories);
+
+  const {
+    data: accountsData,
+    error: accountsError,
+    isLoading: isAccountsLoading,
+  } = useSWR(
+    token ? '/api/auth/linked-accounts' : null,
+    authAPI.getLinkedAccounts,
+  );
+
+  const loading = isReposLoading || isAccountsLoading || !token;
+  const error = reposError?.message || accountsError?.message || null;
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [reposData, accounts] = await Promise.all([
-          githubAPI.getRepositories(),
-          authAPI.getLinkedAccounts(),
-        ]);
-
-        setRepos(reposData.repositories || []);
-        setFilteredRepos(reposData.repositories || []);
-
-        const hasJira = accounts.some(
-          (acc: { provider: string }) => acc.provider === 'JIRA',
-        );
-        setIsJiraLinked(hasJira);
-      } catch (err: any) {
-        console.error('Failed to fetch data:', err);
-        setError(err.message || 'Failed to load data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    if (reposData?.repositories) {
+      setRepos(reposData.repositories);
+      setFilteredRepos(reposData.repositories);
+    }
+    if (accountsData) {
+      const hasJira = accountsData.some(
+        (acc: { provider: string }) => acc.provider === 'JIRA',
+      );
+      setIsJiraLinked(hasJira);
+    }
+  }, [reposData, accountsData]);
 
   useEffect(() => {
     if (search.trim() === '') {

@@ -85,7 +85,9 @@ export default function StudentSettingsPage() {
             </div>
             <div className="flex justify-between items-center py-2 border-b">
               <span className="text-sm text-muted-foreground">Student ID</span>
-              <span className="font-medium">{user?.student_id || '—'}</span>
+              <span className="font-medium">
+                {(user as any)?.student_id || '—'}
+              </span>
             </div>
             <div className="flex justify-between items-center py-2">
               <span className="text-sm text-muted-foreground">Role</span>
