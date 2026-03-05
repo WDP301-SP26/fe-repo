@@ -8,120 +8,100 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { useClasses } from '@/hooks/use-api';
 import { useAuthStore } from '@/stores/authStore';
-import { useEffect, useState } from 'react';
-
-interface Group {
-  id: string;
-  name: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  jira_project_key: string | null;
-}
+import Link from 'next/link';
+import { CreateClassModal } from './components/CreateClassModal';
 
 export default function LecturerDashboardPage() {
   const user = useAuthStore((state) => state.user);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    // Fetch MSW Mock Data
-    const fetchData = async () => {
-      try {
-        // Delay to allow MSW service worker to activate on initial load
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        console.log('Fetching groups and projects...');
-
-        const [groupsRes, projectsRes] = await Promise.all([
-          fetch('/api/groups'),
-          fetch('/api/projects'),
-        ]);
-
-        if (groupsRes.ok) {
-          const groupsData = await groupsRes.json();
-          console.log('Groups fetched successfully:', groupsData);
-          setGroups(groupsData);
-        } else {
-          console.error(
-            'Failed to fetch groups:',
-            groupsRes.status,
-            groupsRes.statusText,
-          );
-        }
-
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json();
-          console.log('Projects fetched successfully:', projectsData);
-          setProjects(projectsData);
-        } else {
-          console.error(
-            'Failed to fetch projects:',
-            projectsRes.status,
-            projectsRes.statusText,
-          );
-        }
-      } catch (error) {
-        console.error('Error fetching mock data:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const { data: classes, error, isLoading } = useClasses();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Lecturer Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome back, {user?.full_name || 'Lecturer'}! Here's an overview of
-          your assigned groups and projects.
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Lecturer Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {user?.full_name || 'Lecturer'}! Manage your classes
+            and groups here.
+          </p>
+        </div>
+        <CreateClassModal />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Total Groups</CardTitle>
-            <CardDescription>Groups you're managing</CardDescription>
+            <CardTitle>Total Classes</CardTitle>
+            <CardDescription>Classes you're teaching</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold">{groups.length}</div>
+            {isLoading ? (
+              <div className="text-4xl font-bold text-muted-foreground">
+                ...
+              </div>
+            ) : (
+              <div className="text-4xl font-bold">{classes?.length || 0}</div>
+            )}
           </CardContent>
         </Card>
 
         <Card className="col-span-1 md:col-span-2 lg:col-span-3">
           <CardHeader>
-            <CardTitle>Student Projects</CardTitle>
-            <CardDescription>Click to view evaluation reports</CardDescription>
+            <CardTitle>Active Classes</CardTitle>
+            <CardDescription>
+              Click to view groups and manage topics
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
-              {projects.length === 0 ? (
+              {isLoading && (
+                <div className="p-4 text-center">Loading classes...</div>
+              )}
+              {error && (
+                <div className="p-4 text-center text-red-500">
+                  Failed to load classes.
+                </div>
+              )}
+              {!isLoading && !error && (!classes || classes.length === 0) ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  No projects found.
+                  No classes created yet. Click "Create Class" above to start.
                 </div>
               ) : (
                 <div className="divide-y">
-                  {projects.map((project: Project) => (
-                    <a
-                      key={project.id}
-                      href={`/lecturer/projects/${project.id}`}
-                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <div>
-                        <div className="font-medium">{project.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {project.jira_project_key}
+                  {classes?.map(
+                    (c: {
+                      id: string;
+                      code: string;
+                      name: string;
+                      semester: string;
+                      enrollment_key: string;
+                    }) => (
+                      <div
+                        key={c.id}
+                        className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                      >
+                        <div>
+                          <div className="font-bold text-lg">
+                            {c.code} - {c.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            Semester: {c.semester} | Enrollment Key:{' '}
+                            <span className="font-mono font-semibold bg-accent px-2 py-0.5 rounded select-all cursor-text">
+                              {c.enrollment_key}
+                            </span>
+                          </div>
                         </div>
+                        <Link
+                          href={`/lecturer/classes/${c.id}`}
+                          className="text-primary text-sm font-medium hover:underline p-2"
+                        >
+                          View 7 Groups &rarr;
+                        </Link>
                       </div>
-                      <div className="text-primary text-sm font-medium">
-                        View Report &rarr;
-                      </div>
-                    </a>
-                  ))}
+                    ),
+                  )}
                 </div>
               )}
             </div>
@@ -158,21 +138,7 @@ export default function LecturerDashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4 md:flex-row md:items-center">
-        <div>
-          <h3 className="font-semibold text-primary">🎓 Test Credentials</h3>
-          <ul className="mt-2 space-y-1 text-sm">
-            <li>
-              <strong>Email:</strong> lecturer1@fe.edu.vn
-            </li>
-            <li>
-              <strong>Password:</strong> password123
-            </li>
-            <li className="text-muted-foreground">
-              (For development only - mock authentication)
-            </li>
-          </ul>
-        </div>
+      <div className="mt-6 flex justify-end">
         <LogoutButton />
       </div>
     </div>
