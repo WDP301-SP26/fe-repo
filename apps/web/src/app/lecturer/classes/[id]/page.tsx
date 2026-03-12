@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useClassGroups } from '@/hooks/use-api';
 import { ArrowLeft, GitBranch, Users } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
+import { ImportStudentsDialog } from '@/components/import-students-dialog';
 
 export default function ClassDetailsPage() {
   const params = useParams();
@@ -15,16 +16,22 @@ export default function ClassDetailsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Class Details</h1>
-          <p className="text-muted-foreground">
-            Manage the 7 auto-generated groups for this class.
-          </p>
+      <div className="flex items-center justify-between border-b pb-4">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">Class Details</h1>
+            <p className="text-muted-foreground">
+              Manage the groups and students for this class.
+            </p>
+          </div>
         </div>
+        <ImportStudentsDialog
+          classId={classId}
+          onSuccess={() => window.location.reload()}
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
