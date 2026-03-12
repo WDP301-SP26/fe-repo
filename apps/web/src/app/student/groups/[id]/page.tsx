@@ -45,6 +45,8 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -107,6 +109,10 @@ export default function GroupDetailsPage() {
     () => jiraAPI.getProjects(),
   );
 
+  // Create new repo state (from original code)
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newRepoName, setNewRepoName] = useState('');
+  const [newRepoDesc, setNewRepoDesc] = useState('');
   const [isCreatingRepo, setIsCreatingRepo] = useState(false);
 
   // AlertDialog state
@@ -117,7 +123,10 @@ export default function GroupDetailsPage() {
     'LEADER';
 
   const handleProvisionWorkspace = async () => {
-    if (!selectedTopic) return toast.warning('Please select a topic first.');
+    if (!selectedTopic) {
+      toast.warning('Please select a topic first.');
+      return;
+    }
     setIsProvisioning(true);
     try {
       await groupAPI.updateGroup(groupId, { topic_id: selectedTopic });
@@ -164,8 +173,10 @@ export default function GroupDetailsPage() {
 
   // Create a new repo on GitHub and link it
   const handleCreateAndLinkRepo = async () => {
-    if (!newRepoName.trim())
-      return toast.warning('Please enter a repository name.');
+    if (!newRepoName.trim()) {
+      toast.warning('Please enter a repository name.');
+      return;
+    }
     setIsCreatingRepo(true);
     try {
       const newRepo = await githubAPI.createRepo(
@@ -298,7 +309,7 @@ export default function GroupDetailsPage() {
     </div>
   );
 
-  const repos = reposData?.repositories || reposData || [];
+  const reposForPicker = reposData?.repositories || reposData || [];
 
   if (loadingGroup) return <div className="p-8">Loading group...</div>;
   if (!group || groupError)
@@ -306,7 +317,6 @@ export default function GroupDetailsPage() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
@@ -320,7 +330,6 @@ export default function GroupDetailsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Project Workspace */}
         <Card className="border-primary/20 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl">Project Workspace</CardTitle>
@@ -385,7 +394,6 @@ export default function GroupDetailsPage() {
           </CardContent>
         </Card>
 
-        {/* Team Members */}
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Team Members</CardTitle>
@@ -425,7 +433,6 @@ export default function GroupDetailsPage() {
         </Card>
       </div>
 
-      {/* GitHub Repositories — Full width */}
       {isLeader && group.topic && (
         <Card className="border-primary/20 shadow-sm">
           <CardHeader>
@@ -439,7 +446,6 @@ export default function GroupDetailsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            {/* Currently linked repos */}
             {loadingGroupRepos ? (
               <div className="flex justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -486,7 +492,6 @@ export default function GroupDetailsPage() {
 
             <hr />
 
-            {/* Add existing repo */}
             <div className="space-y-3">
               <h4 className="text-sm font-medium">Add Existing Repository</h4>
               {loadingRepos ? (
@@ -496,7 +501,7 @@ export default function GroupDetailsPage() {
                     Loading repos...
                   </span>
                 </div>
-              ) : Array.isArray(repos) && repos.length > 0 ? (
+              ) : Array.isArray(reposForPicker) && reposForPicker.length > 0 ? (
                 <div className="flex gap-2">
                   <select
                     className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -505,7 +510,7 @@ export default function GroupDetailsPage() {
                     disabled={isLinkingRepo}
                   >
                     <option value="">-- Select a Repository --</option>
-                    {repos.map((repo: any) => (
+                    {reposForPicker.map((repo: any) => (
                       <option
                         key={repo.id || repo.html_url}
                         value={repo.html_url}
@@ -542,7 +547,6 @@ export default function GroupDetailsPage() {
 
             <hr />
 
-            {/* Create new repo */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium">Create New Repository</h4>
@@ -612,7 +616,6 @@ export default function GroupDetailsPage() {
         </Card>
       )}
 
-      {/* AI & Analytics Reports Section (Leader Only) */}
       {isLeader && group.jira_project_key && (
         <Card className="shadow-sm border-primary/20 bg-primary/2">
           <CardHeader className="pb-4 border-b bg-muted/5 rounded-t-lg">

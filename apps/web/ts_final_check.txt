@@ -1,0 +1,2 @@
+src/app/student/groups/[id]/page.tsx(125,36): error TS7030: Not all code paths return a value.
+src/app/student/groups/[id]/page.tsx(172,35): error TS7030: Not all code paths return a value.
