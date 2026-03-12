@@ -152,6 +152,70 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
+      {/* ── Members Section ─────────────────────────────── */}
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="h-5 w-5" /> Group Members
+            <span className="ml-auto text-sm font-normal text-muted-foreground">
+              {group.members?.length ?? 0} / 5 members
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {!group.members || group.members.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic text-center py-4">
+              No members have joined this group yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {group.members.map((member: any) => {
+                const isLeader = member.role_in_group === 'LEADER';
+                return (
+                  <div
+                    key={member.id}
+                    className={`flex flex-col items-center text-center p-3 rounded-lg border transition-colors ${
+                      isLeader
+                        ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20'
+                        : 'border-border bg-card'
+                    }`}
+                  >
+                    {isLeader && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full mb-1">
+                        👑 LEADER
+                      </span>
+                    )}
+                    {member.avatar_url ? (
+                      <img
+                        src={member.avatar_url}
+                        alt={member.full_name}
+                        className={`w-12 h-12 rounded-full border-2 mb-2 ${isLeader ? 'border-amber-400' : 'border-border'}`}
+                      />
+                    ) : (
+                      <div
+                        className={`w-12 h-12 rounded-full border-2 mb-2 flex items-center justify-center font-bold text-lg ${isLeader ? 'border-amber-400 bg-amber-100 text-amber-700' : 'border-border bg-primary/10 text-primary'}`}
+                      >
+                        {member.full_name?.charAt(0) ?? '?'}
+                      </div>
+                    )}
+                    <span className="font-semibold text-sm leading-tight">
+                      {member.full_name}
+                    </span>
+                    <span className="text-xs text-muted-foreground mt-0.5 truncate max-w-full">
+                      {member.email}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground mt-1">
+                      Joined{' '}
+                      {new Date(member.joined_at).toLocaleDateString('vi-VN')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-3">
         {/* Sidebar: Repositories List */}
         <div className="md:col-span-1 border rounded-lg p-4 bg-muted/10 h-fit space-y-4">
@@ -409,64 +473,131 @@ export default function GroupDetailPage() {
                     </div>
                   )}
                   {reportType === 'commits' && (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <h3 className="text-lg font-bold border-b pb-2">
                         GitHub Contributions across Repositories
                       </h3>
-                      {reportResult.repositories?.map((repo: any) => (
-                        <div key={repo.repository} className="space-y-4">
-                          <h4 className="font-semibold text-primary">
-                            {repo.repository}
-                          </h4>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {repo.contributors?.map((contributor: any) => (
-                              <div
-                                key={contributor.author}
-                                className="p-4 border border-border shadow-sm rounded-lg bg-card flex flex-col items-center justify-center text-center"
-                              >
-                                {contributor.avatar_url ? (
-                                  <img
-                                    src={contributor.avatar_url}
-                                    className="w-12 h-12 rounded-full mb-3 shadow-sm border"
-                                    alt={contributor.author}
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-full mb-3 bg-primary/20 flex items-center justify-center font-bold text-lg text-primary">
-                                    {contributor.author?.[0]}
+                      {reportResult.repositories?.map((repo: any) => {
+                        const contributors: any[] = repo.contributors ?? [];
+                        // Free-rider detection: flag anyone with commits < 25% of group average
+                        const totalCommits = contributors.reduce(
+                          (sum: number, c: any) => sum + (c.commits ?? 0),
+                          0,
+                        );
+                        const avgCommits =
+                          contributors.length > 0
+                            ? totalCommits / contributors.length
+                            : 0;
+                        const freeRiderThreshold = avgCommits * 0.25;
+                        const freeRiderCount = contributors.filter(
+                          (c: any) => c.commits < freeRiderThreshold,
+                        ).length;
+
+                        return (
+                          <div key={repo.repository} className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-primary">
+                                📦 {repo.repository}
+                              </h4>
+                              {freeRiderCount > 0 && (
+                                <span className="text-xs font-semibold bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-full animate-pulse">
+                                  ⚠️ {freeRiderCount} suspected free-rider
+                                  {freeRiderCount > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {contributors.map((contributor: any) => {
+                                const isFreeRider =
+                                  contributor.commits < freeRiderThreshold;
+                                const contribution =
+                                  totalCommits > 0
+                                    ? Math.round(
+                                        (contributor.commits / totalCommits) *
+                                          100,
+                                      )
+                                    : 0;
+                                return (
+                                  <div
+                                    key={contributor.author}
+                                    className={`p-4 border shadow-sm rounded-lg bg-card flex flex-col items-center justify-center text-center transition-colors ${
+                                      isFreeRider
+                                        ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
+                                        : 'border-border'
+                                    }`}
+                                  >
+                                    {isFreeRider && (
+                                      <span className="text-[10px] font-bold text-red-600 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full mb-2">
+                                        ⚠️ FREE RIDER
+                                      </span>
+                                    )}
+                                    {contributor.avatar_url ? (
+                                      <img
+                                        src={contributor.avatar_url}
+                                        className={`w-12 h-12 rounded-full mb-3 shadow-sm border-2 ${isFreeRider ? 'border-red-400' : 'border-border'}`}
+                                        alt={contributor.author}
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-12 h-12 rounded-full mb-3 flex items-center justify-center font-bold text-lg ${isFreeRider ? 'bg-red-100 text-red-700' : 'bg-primary/20 text-primary'}`}
+                                      >
+                                        {contributor.author?.[0]}
+                                      </div>
+                                    )}
+                                    <span className="font-bold text-sm">
+                                      {contributor.author}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-semibold mb-2 mt-1 px-2 py-1 rounded ${isFreeRider ? 'bg-red-100 text-red-700' : 'bg-muted text-muted-foreground'}`}
+                                    >
+                                      {contributor.commits} commits (
+                                      {contribution}%)
+                                    </span>
+                                    <div className="flex gap-4 text-xs w-full justify-center mt-2 border-t pt-2">
+                                      <span className="text-green-600 font-bold flex flex-col">
+                                        <span>+{contributor.lines_added}</span>
+                                        <span className="text-[10px] text-muted-foreground font-normal">
+                                          added
+                                        </span>
+                                      </span>
+                                      <span className="text-red-500 font-bold flex flex-col">
+                                        <span>
+                                          -{contributor.lines_deleted}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground font-normal">
+                                          deleted
+                                        </span>
+                                      </span>
+                                    </div>
                                   </div>
-                                )}
-                                <span className="font-bold text-sm">
-                                  {contributor.author}
+                                );
+                              })}
+                              {contributors.length === 0 && (
+                                <p className="text-sm text-muted-foreground py-2 col-span-full">
+                                  No contributor stats found. (Repository might
+                                  be empty or no code pushed yet)
+                                </p>
+                              )}
+                            </div>
+                            {/* Summary row */}
+                            {contributors.length > 0 && (
+                              <div className="flex gap-4 text-xs text-muted-foreground border-t pt-2">
+                                <span>
+                                  👥 {contributors.length} contributors
                                 </span>
-                                <span className="text-xs font-semibold text-muted-foreground mb-2 mt-1 px-2 py-1 bg-muted rounded">
-                                  {contributor.commits} commits
+                                <span>📝 {totalCommits} total commits</span>
+                                <span>
+                                  📊 avg {Math.round(avgCommits)} commits/person
                                 </span>
-                                <div className="flex gap-4 text-xs w-full justify-center mt-2 border-t pt-2">
-                                  <span className="text-green-600 font-bold flex flex-col">
-                                    <span>+{contributor.lines_added}</span>{' '}
-                                    <span className="text-[10px] text-muted-foreground font-normal">
-                                      lines
-                                    </span>
-                                  </span>
-                                  <span className="text-red-500 font-bold flex flex-col">
-                                    <span>-{contributor.lines_deleted}</span>{' '}
-                                    <span className="text-[10px] text-muted-foreground font-normal">
-                                      lines
-                                    </span>
-                                  </span>
-                                </div>
+                                <span>
+                                  🚩 threshold: &lt;
+                                  {Math.round(freeRiderThreshold)} commits
+                                </span>
                               </div>
-                            ))}
-                            {(!repo.contributors ||
-                              repo.contributors.length === 0) && (
-                              <p className="text-sm text-muted-foreground py-2 col-span-full">
-                                No contributor stats found. (Note: Repository
-                                might be empty or no code pushed yet)
-                              </p>
                             )}
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

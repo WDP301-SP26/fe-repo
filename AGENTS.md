@@ -61,6 +61,14 @@ proxy file "./src\src\proxy.ts" are detected.
 
 ## Build Commands
 
+### Run Dev Server (Web Application)
+
+```bash
+pnpm exec nx run web:dev
+```
+
+> **Note:** Do NOT use `nx dev web` — it will not work in this project. Always use `pnpm exec nx run web:dev`.
+
 ### Build Web Application
 
 ```bash
@@ -76,4 +84,5 @@ nx build web
 ### Common Build Issues
 
 - **File lock error (Windows):** Clear Nx cache with `nx reset` and rebuild
-- **Port mismatch:** Verify `NEXT_PUBLIC_API_URL` in `.env.local` points to correct backend port (8080)
+- **Port mismatch:** Verify `NEXT_PUBLIC_API_URL` in `.env.local` points to BE (Digital Ocean App Platform: `https://jihub-toxzx.ondigitalocean.app`)
+- **MSW enabled check:** Search for `MSWProvider` in `layout.tsx` — if NOT imported there, MSW is disabled (correct for real backend usage)
