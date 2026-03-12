@@ -8,6 +8,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 const ease: any = [0.16, 1, 0.3, 1];
 
@@ -89,7 +90,12 @@ function HeroTitles() {
 }
 
 function HeroCTA() {
+  const [isMounted, setIsMounted] = useState(false);
   const { isAuthenticated, user } = useAuthStore();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getDashboardHref = () => {
     const role = user?.role?.toLowerCase();
@@ -106,7 +112,9 @@ function HeroCTA() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.8, ease }}
       >
-        {isAuthenticated ? (
+        {!isMounted ? (
+          <div className="h-10 w-[160px] bg-primary/20 animate-pulse rounded-md" />
+        ) : isAuthenticated ? (
           <Link
             href={getDashboardHref()}
             className={cn(

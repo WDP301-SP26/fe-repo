@@ -1,12 +1,20 @@
+'use client';
+
 import { Icons } from '@/components/icons';
 import Section from '@/components/section';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function CtaSection() {
+  const [isMounted, setIsMounted] = useState(false);
   const { isAuthenticated, user } = useAuthStore();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getDashboardHref = () => {
     const role = user?.role?.toLowerCase();
@@ -23,7 +31,9 @@ export default function CtaSection() {
       className="bg-primary/10 rounded-xl py-16"
     >
       <div className="flex flex-col w-full sm:flex-row items-center justify-center space-y-4 sm:space-y-0 sm:space-x-4 pt-4">
-        {isAuthenticated ? (
+        {!isMounted ? (
+          <div className="h-10 w-[160px] bg-primary/20 animate-pulse rounded-md" />
+        ) : isAuthenticated ? (
           <Link
             href={getDashboardHref()}
             className={cn(
