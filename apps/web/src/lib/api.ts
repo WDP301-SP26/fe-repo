@@ -17,6 +17,12 @@ export async function fetchAPI<T>(
     ...(fetchOptions.headers as Record<string, string>),
   };
 
+  // If Content-Type is explicitly set to empty string, delete it
+  // This is useful for FormData where the browser should set the boundary
+  if (headers['Content-Type'] === '') {
+    delete headers['Content-Type'];
+  }
+
   // Attach token from authStore if available
   const token = useAuthStore.getState().token;
   if (requireAuth && token) {
@@ -88,6 +94,18 @@ export const classAPI = {
       method: 'POST',
       body: JSON.stringify({ enrollment_key }),
     }),
+  importStudents: (classId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchAPI<any>(`/api/classes/${classId}/import-students`, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        // Let the browser set the boundary for multipart/form-data
+        'Content-Type': '',
+      },
+    });
+  },
 };
 
 // Group API methods
