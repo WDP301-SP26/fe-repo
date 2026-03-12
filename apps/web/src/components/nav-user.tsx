@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 
 import {
   BellIcon,
-  CreditCardIcon,
   LogOutIcon,
   MoreVerticalIcon,
   UserCircleIcon,
