@@ -1,9 +1,9 @@
-import { LoginForm as LoginFormComponent } from '@/components/login-form';
+import { LoginForm } from '@/components/login-form';
 
-export default function LoginForm() {
+export default function SignInPage() {
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
-      <LoginFormComponent />
+      <LoginForm />
     </div>
   );
 }
