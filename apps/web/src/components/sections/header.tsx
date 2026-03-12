@@ -13,7 +13,12 @@ import { useEffect, useState } from 'react';
 
 export default function Header() {
   const [addBorder, setAddBorder] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const { isAuthenticated, setUser } = useAuthStore();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -76,7 +81,9 @@ export default function Header() {
             </nav>
 
             <div className="gap-2 flex">
-              {isAuthenticated ? (
+              {!isMounted ? (
+                <div className="h-10 w-32 bg-primary/20 animate-pulse rounded-md" />
+              ) : isAuthenticated ? (
                 <Link
                   href={getDashboardHref()}
                   className={cn(
