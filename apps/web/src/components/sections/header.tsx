@@ -46,6 +46,13 @@ export default function Header() {
     };
   }, []);
 
+  const getDashboardHref = () => {
+    const role = useAuthStore.getState().user?.role?.toLowerCase();
+    if (role === 'lecturer') return '/lecturer';
+    if (role === 'admin') return '/dashboard/admin';
+    return '/student';
+  };
+
   return (
     <header
       className={
@@ -71,7 +78,7 @@ export default function Header() {
             <div className="gap-2 flex">
               {isAuthenticated ? (
                 <Link
-                  href="/dashboard"
+                  href={getDashboardHref()}
                   className={cn(
                     buttonVariants({ variant: 'default' }),
                     'w-full sm:w-auto text-background flex gap-2',

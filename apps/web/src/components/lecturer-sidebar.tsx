@@ -1,7 +1,5 @@
 'use client';
 
-import { AlertTriangle, BarChart3, Home, Settings, Users2 } from 'lucide-react';
-
 import { NavUser } from '@/components/nav-user';
 import {
   Sidebar,
@@ -16,6 +14,9 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useAuthStore } from '@/stores/authStore';
+import { AlertTriangle, BarChart3, Home, Settings, Users2 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const lecturerMenuItems = [
   {
@@ -47,43 +48,60 @@ const lecturerMenuItems = [
 
 export function LecturerSidebar() {
   const user = useAuthStore((state) => state.user);
+  const pathname = usePathname();
 
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <Users2 className="h-4 w-4" />
           </div>
           <div className="flex flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-semibold">Lecturer Portal</span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold tracking-tight">
+              Lecturer Portal
+            </span>
+            <span className="text-xs text-muted-foreground font-medium">
               SWP391 Manager
             </span>
           </div>
         </div>
       </SidebarHeader>
+
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {lecturerMenuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {lecturerMenuItems.map((item) => {
+                const isActive =
+                  pathname === item.url || pathname.startsWith(`${item.url}/`);
+
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                      className="transition-colors hover:bg-muted"
+                    >
+                      <Link href={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        {user && (
+
+      <SidebarFooter className="border-t p-4 border-border/50">
+        {user ? (
           <NavUser
             user={{
               name: user.full_name,
@@ -91,6 +109,8 @@ export function LecturerSidebar() {
               avatar: user.avatar_url || '',
             }}
           />
+        ) : (
+          <div className="h-10 w-full animate-pulse rounded-md bg-muted" />
         )}
       </SidebarFooter>
     </Sidebar>
