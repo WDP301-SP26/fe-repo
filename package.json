@@ -5,7 +5,8 @@
   "scripts": {
     "prepare": "husky",
     "fix-lint": "nx run-many -t lint --fix",
-    "typescript-check": "tsc --noEmit --skipLibCheck"
+    "typescript-check": "tsc --noEmit --skipLibCheck",
+    "clean": "pnpm dlx npkill && pnpm install --frozen-lockfile"
   },
   "private": true,
   "lint-staged": {
@@ -60,7 +61,7 @@
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "10.4.13",
     "babel-jest": "^30.0.2",
-    "baseline-browser-mapping": "^2.9.19",
+    "baseline-browser-mapping": "^2.10.0",
     "eslint": "^9.8.0",
     "eslint-config-next": "^16.0.1",
     "eslint-config-prettier": "^10.0.0",
