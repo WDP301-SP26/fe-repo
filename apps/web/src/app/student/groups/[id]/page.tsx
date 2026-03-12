@@ -15,6 +15,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useTopics } from '@/hooks/use-api';
 import { githubAPI, groupAPI, jiraAPI, reportAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
@@ -35,8 +45,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
 interface GroupRepo {
@@ -98,26 +107,27 @@ export default function GroupDetailsPage() {
     () => jiraAPI.getProjects(),
   );
 
-  // Create new repo state
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newRepoName, setNewRepoName] = useState('');
-  const [newRepoDesc, setNewRepoDesc] = useState('');
   const [isCreatingRepo, setIsCreatingRepo] = useState(false);
+
+  // AlertDialog state
+  const [repoToRemove, setRepoToRemove] = useState<string | null>(null);
 
   const isLeader =
     group?.members?.find((m: any) => m.id === user?.id)?.role_in_group ===
     'LEADER';
 
   const handleProvisionWorkspace = async () => {
-    if (!selectedTopic) return alert('Please select a topic first.');
+    if (!selectedTopic) return toast.warning('Please select a topic first.');
     setIsProvisioning(true);
     try {
       await groupAPI.updateGroup(groupId, { topic_id: selectedTopic });
-      alert('Workspace Provisioning triggered successfully!');
+      toast.success('Workspace Provisioning triggered successfully!');
       mutate(`/api/groups/${groupId}`);
       setIsChangingTopic(false);
     } catch (err: any) {
-      alert(`Provisioning failed: ${err.message}`);
+      toast.error('Provisioning failed', {
+        description: err.message,
+      });
     } finally {
       setIsProvisioning(false);
     }
@@ -140,10 +150,13 @@ export default function GroupDetailsPage() {
           selectedRepo.full_name?.split('/')[0] ||
           '',
       });
+      toast.success('Repository linked successfully!');
       mutate(`/api/groups/${groupId}/repos`);
       setSelectedRepoUrl('');
     } catch (err: any) {
-      alert(`Failed: ${err.message}`);
+      toast.error('Failed to link repository', {
+        description: err.message,
+      });
     } finally {
       setIsLinkingRepo(false);
     }
@@ -151,7 +164,8 @@ export default function GroupDetailsPage() {
 
   // Create a new repo on GitHub and link it
   const handleCreateAndLinkRepo = async () => {
-    if (!newRepoName.trim()) return alert('Please enter a repository name.');
+    if (!newRepoName.trim())
+      return toast.warning('Please enter a repository name.');
     setIsCreatingRepo(true);
     try {
       const newRepo = await githubAPI.createRepo(
@@ -169,9 +183,11 @@ export default function GroupDetailsPage() {
       setNewRepoName('');
       setNewRepoDesc('');
       setShowCreateForm(false);
-      alert(`Repository "${newRepo.name}" created and linked!`);
+      toast.success(`Repository "${newRepo.name}" created and linked!`);
     } catch (err: any) {
-      alert(`Failed to create repo: ${err.message}`);
+      toast.error('Failed to create repo', {
+        description: err.message,
+      });
     } finally {
       setIsCreatingRepo(false);
     }
@@ -184,10 +200,13 @@ export default function GroupDetailsPage() {
       await groupAPI.updateGroup(groupId, {
         jira_project_key: selectedJiraProjectKey,
       });
+      toast.success('Jira project linked successfully!');
       mutate(`/api/groups/${groupId}`);
       setIsJiraModalOpen(false);
     } catch (err: any) {
-      alert(`Failed: ${err.message}`);
+      toast.error('Failed to link Jira project', {
+        description: err.message,
+      });
     } finally {
       setIsLinkingJira(false);
     }
@@ -220,13 +239,18 @@ export default function GroupDetailsPage() {
   };
 
   // Remove a linked repo
-  const handleRemoveRepo = async (repoId: string) => {
-    if (!confirm('Remove this repository from the group?')) return;
+  const handleRemoveRepo = async () => {
+    if (!repoToRemove) return;
     try {
-      await groupAPI.removeGroupRepo(groupId, repoId);
+      await groupAPI.removeGroupRepo(groupId, repoToRemove);
+      toast.success('Repository removed from group');
       mutate(`/api/groups/${groupId}/repos`);
     } catch (err: any) {
-      alert(`Failed: ${err.message}`);
+      toast.error('Failed to remove repository', {
+        description: err.message,
+      });
+    } finally {
+      setRepoToRemove(null);
     }
   };
 
@@ -447,7 +471,7 @@ export default function GroupDetailsPage() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleRemoveRepo(repo.id)}
+                      onClick={() => setRepoToRemove(repo.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -797,6 +821,30 @@ export default function GroupDetailsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!repoToRemove}
+        onOpenChange={(open) => !open && setRepoToRemove(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will un-link the repository from your group workspace. It
+              won't delete the repository from GitHub.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleRemoveRepo}
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

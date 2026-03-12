@@ -15,6 +15,7 @@ import { ArrowLeft, Loader2, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
 export default function StudentClassDetailsPage() {
@@ -31,9 +32,12 @@ export default function StudentClassDetailsPage() {
     setJoiningId(groupId);
     try {
       await groupAPI.joinGroup(groupId);
+      toast.success('Successfully joined the group!');
       await mutate(`/api/groups/class/${classId}`);
     } catch (err: any) {
-      alert(`Error joining group: ${err.message}`);
+      toast.error('Error joining group', {
+        description: err.message,
+      });
     } finally {
       setJoiningId(null);
     }

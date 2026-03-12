@@ -12,6 +12,7 @@ import {
 import { classAPI } from '@/lib/api';
 import { Loader2, PlusCircle } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
 export function CreateClassModal() {
@@ -41,12 +42,17 @@ export function CreateClassModal() {
         studentEmails: emails,
       });
 
-      alert(`Class created! Enrollment Key: ${result.enrollment_key}`);
+      toast.success('Class created successfully!', {
+        description: `Enrollment Key: ${result.enrollment_key}`,
+        duration: 10000,
+      });
       mutate('/api/classes');
       setIsOpen(false);
       setFormData({ code: '', name: '', semester: 'SP26', student_emails: '' });
     } catch (error: any) {
-      alert(`Error creating class: ${error.message}`);
+      toast.error('Error creating class', {
+        description: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
