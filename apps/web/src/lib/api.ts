@@ -54,6 +54,12 @@ export const authAPI = {
     fetchAPI<{ provider: string }[]>('/api/auth/linked-accounts'),
   unlinkProvider: (provider: 'GITHUB' | 'JIRA') =>
     fetchAPI(`/api/auth/unlink/${provider}`, { method: 'DELETE' }),
+  register: (data: any) =>
+    fetchAPI<any>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      requireAuth: false,
+    }),
   logout: () =>
     fetchAPI('/api/auth/logout', { method: 'POST' }).catch(() => {
       // Logout endpoint doesn't exist yet in backend, but that's okay
