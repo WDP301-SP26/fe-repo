@@ -6,6 +6,7 @@ import { Icons } from '@/components/icons';
 import HeroVideoDialog from '@/components/magicui/hero-video';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 
 const ease: any = [0.16, 1, 0.3, 1];
@@ -88,6 +89,15 @@ function HeroTitles() {
 }
 
 function HeroCTA() {
+  const { isAuthenticated, user } = useAuthStore();
+
+  const getDashboardHref = () => {
+    const role = user?.role?.toLowerCase();
+    if (role === 'lecturer') return '/lecturer';
+    if (role === 'admin') return '/dashboard/admin';
+    return '/student';
+  };
+
   return (
     <>
       <motion.div
@@ -96,25 +106,40 @@ function HeroCTA() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.8, duration: 0.8, ease }}
       >
-        <Link
-          href="/signup"
-          className={cn(
-            buttonVariants({ variant: 'default' }),
-            'w-full sm:w-auto text-background flex gap-2',
-          )}
-        >
-          <Icons.logo className="h-6 w-6" />
-          Get started for free
-        </Link>
+        {isAuthenticated ? (
+          <Link
+            href={getDashboardHref()}
+            className={cn(
+              buttonVariants({ variant: 'default' }),
+              'w-full sm:w-auto text-background flex gap-2',
+            )}
+          >
+            <Icons.logo className="h-6 w-6" />
+            Go to Dashboard
+          </Link>
+        ) : (
+          <Link
+            href="/signup"
+            className={cn(
+              buttonVariants({ variant: 'default' }),
+              'w-full sm:w-auto text-background flex gap-2',
+            )}
+          >
+            <Icons.logo className="h-6 w-6" />
+            Get started for free
+          </Link>
+        )}
       </motion.div>
-      <motion.p
-        className="mt-5 text-sm text-muted-foreground"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.0, duration: 0.8 }}
-      >
-        7 day free trial. No credit card required.
-      </motion.p>
+      {!isAuthenticated && (
+        <motion.p
+          className="mt-5 text-sm text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.0, duration: 0.8 }}
+        >
+          7 day free trial. No credit card required.
+        </motion.p>
+      )}
     </>
   );
 }
