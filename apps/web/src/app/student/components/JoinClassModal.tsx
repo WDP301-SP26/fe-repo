@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { classAPI } from '@/lib/api';
 import { KeyRound, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
 interface JoinClassModalProps {
@@ -36,12 +37,14 @@ export function JoinClassModal({
     setIsLoading(true);
     try {
       await classAPI.joinClass(formData.classId, formData.enrollmentKey);
-      alert('Successfully joined the class!');
+      toast.success('Successfully joined the class!');
       mutate('/api/classes/my-classes'); // Refresh student's classes
       setIsOpen(false);
       setFormData({ classId: defaultClassId || '', enrollmentKey: '' });
     } catch (error: any) {
-      alert(`Error joining class: ${error.message}`);
+      toast.error('Error joining class', {
+        description: error.message,
+      });
     } finally {
       setIsLoading(false);
     }
