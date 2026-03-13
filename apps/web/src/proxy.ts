@@ -3,7 +3,7 @@ import { authConfig } from './auth.config';
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   const { nextUrl } = req;
   const isAuthenticated = !!req.auth;
   const userRole = req.auth?.user?.role;
