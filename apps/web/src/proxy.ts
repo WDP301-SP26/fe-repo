@@ -1,31 +1,44 @@
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
 
-export default function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+const { auth } = NextAuth(authConfig);
 
-  // Public routes
-  const publicRoutes = ['/', '/signin', '/signup', '/auth/callback'];
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
-  }
+export default auth((req) => {
+  const { nextUrl } = req;
+  const isAuthenticated = !!req.auth;
+  const userRole = req.auth?.user?.role;
+
+  const isLecturerRoute = nextUrl.pathname.startsWith('/lecturer');
+  const isStudentRoute = nextUrl.pathname.startsWith('/student');
+  const isAuthRoute =
+    nextUrl.pathname.startsWith('/signin') ||
+    nextUrl.pathname.startsWith('/register');
 
   // Check authentication for protected routes
-  const authToken = request.cookies.get('auth_token');
-
-  if (!authToken) {
-    // Redirect to login if not authenticated
-    return NextResponse.redirect(new URL('/signin', request.url));
+  if (!isAuthenticated && (isLecturerRoute || isStudentRoute)) {
+    return Response.redirect(new URL('/signin', nextUrl));
   }
 
-  return NextResponse.next();
-}
+  if (isAuthenticated) {
+    // If logged in, redirect away from auth pages
+    if (isAuthRoute) {
+      const redirectUrl = userRole === 'LECTURER' ? '/lecturer' : '/student';
+      return Response.redirect(new URL(redirectUrl, nextUrl));
+    }
+
+    // Role-based protection
+    if (isLecturerRoute && userRole !== 'LECTURER') {
+      return Response.redirect(new URL('/student', nextUrl));
+    }
+
+    if (isStudentRoute && userRole !== 'STUDENT') {
+      return Response.redirect(new URL('/lecturer', nextUrl));
+    }
+  }
+
+  return;
+});
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/lecturer/:path*',
-    '/projects/:path*',
-    '/settings/:path*',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

@@ -3,11 +3,14 @@
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
+import { useAuthStore } from '@/stores/authStore';
 
 export function AuthListener() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { status } = useSession();
+
+  const { fetchUser, isInitialized } = useAuthStore();
 
   useEffect(() => {
     const token = searchParams.get('token');
@@ -15,24 +18,21 @@ export function AuthListener() {
 
     if (token && userStr && status === 'unauthenticated') {
       const decodedUser = decodeURIComponent(userStr);
-
-      // Sign in using the Credentials provider configured in auth.ts
       signIn('credentials', {
         token,
         user: decodedUser,
         redirect: false,
       }).then((result) => {
         if (result?.ok) {
-          // Clean up URL
           router.replace('/');
-          // Force reload to update session state across the app if needed
           router.refresh();
-        } else {
-          console.error('Failed to sign in with token', result?.error);
         }
       });
+    } else if (!token && !isInitialized && status === 'unauthenticated') {
+      // Try to hydrate session from httpOnly cookie
+      fetchUser();
     }
-  }, [searchParams, router, status]);
+  }, [searchParams, router, status, isInitialized, fetchUser]);
 
   return null;
 }
