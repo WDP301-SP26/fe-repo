@@ -28,6 +28,7 @@ export const authConfig = {
             email: user.email,
             image: user.avatar_url,
             accessToken: credentials.token as string,
+            role: user.role,
           };
         }
         return null;
@@ -43,14 +44,19 @@ export const authConfig = {
         session.user.id = token.sub;
       }
       if (token.accessToken) {
-        // Pass access_token to session if needed
         session.accessToken = token.accessToken as string;
+      }
+      if (token.role && session.user) {
+        session.user.role = token.role as string;
       }
       return session;
     },
     async jwt({ token, user, trigger, session }) {
       if (user && user.accessToken) {
         token.accessToken = user.accessToken;
+      }
+      if (user && user.role) {
+        token.role = user.role;
       }
       return token;
     },
