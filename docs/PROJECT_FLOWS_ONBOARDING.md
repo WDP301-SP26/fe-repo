@@ -39,7 +39,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện / có thể xem là hoàn thiện cho demo sau khi merge PR**.
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có route helper test cho matrix role chính).
 
 ---
 
@@ -56,7 +56,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện** (core flow ổn định).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có search/filter/pagination cho danh sách nhóm).
 
 ---
 
@@ -110,7 +110,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện** (đang cần tối ưu thêm về pagination/đồng nhất UX).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có search/filter/pagination theo class + integration).
 
 ---
 
@@ -128,7 +128,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Chưa 100%** (cần tăng độ tin cậy mapping dữ liệu và kiểm soát chất lượng báo cáo).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có metadata report, timestamp, data source, warning dữ liệu thiếu, pagination assignments).
 
 ---
 
