@@ -1,5 +1,6 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,10 +20,11 @@ import {
   FileText,
   GitCommit,
   Github,
+  Info,
   Users,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 export default function GroupDetailPage() {
@@ -54,12 +56,17 @@ export default function GroupDetailPage() {
   const [reportType, setReportType] = useState<string>(''); // srs | assignments | commits
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportError, setReportError] = useState('');
+  const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
+    null,
+  );
+  const [assignmentsPage, setAssignmentsPage] = useState(1);
 
   const generateReport = async (type: string) => {
     setGeneratingReport(true);
     setReportError('');
     setReportResult(null);
     setReportType(type);
+    setAssignmentsPage(1);
     try {
       if (type === 'srs') {
         const res = await reportAPI.generateSrs(groupId);
@@ -71,6 +78,7 @@ export default function GroupDetailPage() {
         const res = await reportAPI.getCommitsStats(groupId);
         setReportResult(res);
       }
+      setReportGeneratedAt(new Date().toISOString());
     } catch (err: any) {
       setReportError(
         err.message ||
@@ -80,6 +88,34 @@ export default function GroupDetailPage() {
       setGeneratingReport(false);
     }
   };
+
+  const assignments =
+    reportType === 'assignments' ? reportResult?.assignments || [] : [];
+  const assignmentsPageSize = 8;
+  const assignmentsTotalPages = Math.max(
+    1,
+    Math.ceil(assignments.length / assignmentsPageSize),
+  );
+  const safeAssignmentsPage = Math.min(assignmentsPage, assignmentsTotalPages);
+  const assignmentsOnPage = useMemo(() => {
+    const start = (safeAssignmentsPage - 1) * assignmentsPageSize;
+    return assignments.slice(start, start + assignmentsPageSize);
+  }, [assignments, safeAssignmentsPage]);
+
+  const reportWarnings = useMemo(() => {
+    const warnings: string[] = [];
+    if (!group?.jira_project_key) {
+      warnings.push(
+        'Jira project is not linked. Assignment insights can be incomplete.',
+      );
+    }
+    if (!repos || repos.length === 0) {
+      warnings.push(
+        'No linked repositories detected. Commit analytics can be empty.',
+      );
+    }
+    return warnings;
+  }, [group?.jira_project_key, repos]);
 
   useEffect(() => {
     if (repos && repos.length > 0 && !activeRepoId) {
@@ -421,6 +457,36 @@ export default function GroupDetailPage() {
 
               {!generatingReport && reportResult && (
                 <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-[800px] overflow-y-auto">
+                  <Alert className="mb-5 border-primary/20 bg-primary/5">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Report Metadata</AlertTitle>
+                    <AlertDescription>
+                      <p>
+                        Type: <strong>{reportType.toUpperCase()}</strong> |
+                        Generated:{' '}
+                        <strong>
+                          {reportGeneratedAt
+                            ? new Date(reportGeneratedAt).toLocaleString()
+                            : 'Unknown'}
+                        </strong>
+                      </p>
+                      <p>
+                        Data sources: Jira{' '}
+                        {group?.jira_project_key
+                          ? `(${group.jira_project_key})`
+                          : '(missing)'}{' '}
+                        and GitHub ({repos?.length || 0} repos)
+                      </p>
+                      {reportWarnings.length > 0 && (
+                        <ul className="mt-2 list-disc pl-5">
+                          {reportWarnings.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+
                   {reportType === 'srs' && (
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                       <pre className="whitespace-pre-wrap font-sans text-sm">
@@ -437,7 +503,7 @@ export default function GroupDetailPage() {
                         Total Tasks: <strong>{reportResult.totalTasks}</strong>
                       </p>
                       <ul className="grid md:grid-cols-2 gap-4 mt-4">
-                        {reportResult.assignments?.map((task: any) => (
+                        {assignmentsOnPage.map((task: any) => (
                           <li
                             key={task.key}
                             className="p-3 border rounded-md flex justify-between items-center text-sm bg-muted/10 shadow-sm"
@@ -464,6 +530,42 @@ export default function GroupDetailPage() {
                           </li>
                         ))}
                       </ul>
+                      {assignments.length > assignmentsPageSize && (
+                        <div className="mt-4 flex items-center justify-between border rounded-md p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Page {safeAssignmentsPage} of{' '}
+                            {assignmentsTotalPages}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setAssignmentsPage((prev) =>
+                                  Math.max(1, prev - 1),
+                                )
+                              }
+                              disabled={safeAssignmentsPage <= 1}
+                            >
+                              Previous
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setAssignmentsPage((prev) =>
+                                  Math.min(assignmentsTotalPages, prev + 1),
+                                )
+                              }
+                              disabled={
+                                safeAssignmentsPage >= assignmentsTotalPages
+                              }
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                       {(!reportResult.assignments ||
                         reportResult.assignments.length === 0) && (
                         <p className="text-muted-foreground italic">

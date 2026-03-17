@@ -1,13 +1,41 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { groupAPI } from '@/lib/api';
 import { useClasses } from '@/hooks/use-api';
-import { GitBranch, Users, ChevronRight, BookOpen } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { groupAPI } from '@/lib/api';
+import {
+  BookOpen,
+  ChevronRight,
+  GitBranch,
+  Link2,
+  Search,
+  Users,
+} from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+const PAGE_SIZE_OPTIONS = ['8', '12', '16'] as const;
+const INTEGRATION_OPTIONS = ['ALL', 'READY', 'MISSING'] as const;
+
+function parsePositiveInt(value: string | null, fallback = 1): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return Math.floor(parsed);
+}
 
 interface Group {
   id: string;
@@ -28,12 +56,122 @@ interface ClassWithGroups {
   error: boolean;
 }
 
+interface FlattenedGroup {
+  id: string;
+  name: string;
+  membersCount: number;
+  topic?: { name: string };
+  github_repo_url?: string;
+  jira_project_key?: string;
+  classId: string;
+  classCode: string;
+  className: string;
+  semester: string;
+}
+
 export default function GroupsPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { data: classes, isLoading: classesLoading } = useClasses();
   const [classesWithGroups, setClassesWithGroups] = useState<ClassWithGroups[]>(
     [],
   );
+
+  const getSearchState = () => {
+    const q = searchParams.get('q') || '';
+    const classId = searchParams.get('classId') || 'ALL';
+    const integration = searchParams.get('integration') || 'ALL';
+    const size = searchParams.get('size') || '12';
+    const pageValue = parsePositiveInt(searchParams.get('page'), 1);
+
+    return {
+      q,
+      classId,
+      integration: INTEGRATION_OPTIONS.includes(
+        integration as (typeof INTEGRATION_OPTIONS)[number],
+      )
+        ? integration
+        : 'ALL',
+      size: PAGE_SIZE_OPTIONS.includes(
+        size as (typeof PAGE_SIZE_OPTIONS)[number],
+      )
+        ? size
+        : '12',
+      pageValue,
+    };
+  };
+
+  const initialState = getSearchState();
+  const [searchTerm, setSearchTerm] = useState(initialState.q);
+  const [integrationFilter, setIntegrationFilter] = useState(
+    initialState.integration,
+  );
+  const [selectedClassId, setSelectedClassId] = useState(initialState.classId);
+  const [page, setPage] = useState(initialState.pageValue);
+  const [pageSize, setPageSize] = useState(initialState.size);
+
+  const replaceQuery = (next: {
+    q?: string;
+    classId?: string;
+    integration?: string;
+    size?: string;
+    page?: number;
+  }) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (next.q !== undefined) {
+      if (next.q) {
+        params.set('q', next.q);
+      } else {
+        params.delete('q');
+      }
+    }
+
+    if (next.classId !== undefined) {
+      if (next.classId && next.classId !== 'ALL') {
+        params.set('classId', next.classId);
+      } else {
+        params.delete('classId');
+      }
+    }
+
+    if (next.integration !== undefined) {
+      if (next.integration && next.integration !== 'ALL') {
+        params.set('integration', next.integration);
+      } else {
+        params.delete('integration');
+      }
+    }
+
+    if (next.size !== undefined) {
+      if (next.size && next.size !== '12') {
+        params.set('size', next.size);
+      } else {
+        params.delete('size');
+      }
+    }
+
+    if (next.page !== undefined) {
+      if (next.page > 1) {
+        params.set('page', String(next.page));
+      } else {
+        params.delete('page');
+      }
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
+  useEffect(() => {
+    const state = getSearchState();
+    setSearchTerm(state.q);
+    setSelectedClassId(state.classId);
+    setIntegrationFilter(state.integration);
+    setPageSize(state.size);
+    setPage(state.pageValue);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!classes || classes.length === 0) return;
@@ -81,6 +219,76 @@ export default function GroupsPage() {
     0,
   );
 
+  const allGroups = useMemo<FlattenedGroup[]>(() => {
+    return classesWithGroups.flatMap((cls) =>
+      cls.groups.map((group: any) => ({
+        ...group,
+        membersCount: group.membersCount ?? group.members_count ?? 0,
+        classId: cls.id,
+        classCode: cls.code,
+        className: cls.name,
+        semester: cls.semester,
+      })),
+    );
+  }, [classesWithGroups]);
+
+  const filteredGroups = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    return allGroups.filter((group) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        group.name?.toLowerCase().includes(normalizedSearch) ||
+        group.topic?.name?.toLowerCase().includes(normalizedSearch) ||
+        group.classCode?.toLowerCase().includes(normalizedSearch) ||
+        group.jira_project_key?.toLowerCase().includes(normalizedSearch);
+
+      const matchesClass =
+        selectedClassId === 'ALL' || group.classId === selectedClassId;
+
+      const hasAllIntegrations =
+        !!group.github_repo_url && !!group.jira_project_key;
+      const hasMissingIntegrations =
+        !group.github_repo_url || !group.jira_project_key;
+
+      const matchesIntegration =
+        integrationFilter === 'ALL' ||
+        (integrationFilter === 'READY' && hasAllIntegrations) ||
+        (integrationFilter === 'MISSING' && hasMissingIntegrations);
+
+      return matchesSearch && matchesClass && matchesIntegration;
+    });
+  }, [allGroups, integrationFilter, searchTerm, selectedClassId]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredGroups.length / Number(pageSize)),
+  );
+  const safePage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    if (safePage !== page) {
+      setPage(safePage);
+      replaceQuery({ page: safePage });
+    }
+  }, [safePage, page]);
+
+  useEffect(() => {
+    if (
+      selectedClassId !== 'ALL' &&
+      classesWithGroups.length > 0 &&
+      !classesWithGroups.some((item) => item.id === selectedClassId)
+    ) {
+      setSelectedClassId('ALL');
+      setPage(1);
+      replaceQuery({ classId: 'ALL', page: 1 });
+    }
+  }, [classesWithGroups, selectedClassId]);
+
+  const paginatedGroups = useMemo(() => {
+    const start = (safePage - 1) * Number(pageSize);
+    return filteredGroups.slice(start, start + Number(pageSize));
+  }, [filteredGroups, safePage, pageSize]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -116,112 +324,213 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Classes + Groups */}
-      {!classesLoading &&
-        classesWithGroups.map((cls) => (
-          <div key={cls.id} className="space-y-3">
-            {/* Class header */}
-            <div className="flex items-center gap-3">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <div>
-                <h2 className="text-lg font-semibold">
-                  {cls.code} — {cls.name}
-                </h2>
-                <span className="text-xs text-muted-foreground">
-                  Semester: {cls.semester}
-                </span>
+      {!classesLoading && classesWithGroups.length > 0 && (
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  placeholder="Search by group, topic, class, or Jira key"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchTerm(value);
+                    setPage(1);
+                    replaceQuery({ q: value, page: 1 });
+                  }}
+                />
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="ml-auto text-xs"
-                onClick={() => router.push(`/lecturer/classes/${cls.id}`)}
+
+              <Select
+                value={selectedClassId}
+                onValueChange={(value) => {
+                  setSelectedClassId(value);
+                  setPage(1);
+                  replaceQuery({ classId: value, page: 1 });
+                }}
               >
-                View class <ChevronRight className="h-3 w-3 ml-1" />
-              </Button>
+                <SelectTrigger className="w-full lg:w-56">
+                  <SelectValue placeholder="Filter by class" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All classes</SelectItem>
+                  {classesWithGroups.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.code} - {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={integrationFilter}
+                onValueChange={(value) => {
+                  setIntegrationFilter(value);
+                  setPage(1);
+                  replaceQuery({ integration: value, page: 1 });
+                }}
+              >
+                <SelectTrigger className="w-full lg:w-44">
+                  <SelectValue placeholder="Integrations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">All groups</SelectItem>
+                  <SelectItem value="READY">Jira + GitHub ready</SelectItem>
+                  <SelectItem value="MISSING">Missing integration</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={pageSize}
+                onValueChange={(value) => {
+                  setPageSize(value);
+                  setPage(1);
+                  replaceQuery({ size: value, page: 1 });
+                }}
+              >
+                <SelectTrigger className="w-full lg:w-36">
+                  <SelectValue placeholder="Page size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="8">8 / page</SelectItem>
+                  <SelectItem value="12">12 / page</SelectItem>
+                  <SelectItem value="16">16 / page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Groups grid */}
-            {cls.loading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-32 w-full rounded-lg" />
-                ))}
-              </div>
-            )}
-            {cls.error && (
-              <p className="text-sm text-red-500 pl-8">
-                Failed to load groups for this class.
-              </p>
-            )}
-            {!cls.loading && !cls.error && cls.groups.length === 0 && (
-              <p className="text-sm text-muted-foreground italic pl-8">
-                No groups in this class yet.
-              </p>
-            )}
-            {!cls.loading && !cls.error && cls.groups.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {cls.groups.map((group: any, index: number) => (
-                  <Card
-                    key={group.id}
-                    className="hover:border-primary hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => router.push(`/lecturer/groups/${group.id}`)}
-                  >
-                    <CardHeader className="pb-2 pt-4 px-4">
-                      <CardTitle className="flex justify-between items-start text-base">
-                        <span className="font-semibold truncate">
-                          {group.name}
-                        </span>
-                        <span className="text-xs font-normal text-muted-foreground bg-accent px-2 py-0.5 rounded-full shrink-0 ml-2">
-                          #{index + 1}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-4 space-y-2">
-                      {/* Topic */}
-                      <div className="flex items-center gap-2 text-sm">
-                        <GitBranch className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="truncate">
-                          {group.topic?.name ?? (
-                            <span className="italic text-muted-foreground">
-                              No topic selected
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      {/* Members */}
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4 shrink-0" />
-                        <span>{group.membersCount ?? 0} / 5 members</span>
-                      </div>
-                      {/* Integrations */}
-                      <div className="flex gap-2 mt-2 flex-wrap">
-                        {group.jira_project_key ? (
-                          <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full border border-blue-200 font-medium">
-                            Jira ✓
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full border font-medium">
-                            Jira –
-                          </span>
-                        )}
-                        {group.github_repo_url ? (
-                          <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full border border-green-200 font-medium">
-                            GitHub ✓
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 bg-muted text-muted-foreground rounded-full border font-medium">
-                            GitHub –
-                          </span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+            <div className="text-sm text-muted-foreground">
+              Showing {paginatedGroups.length} of {filteredGroups.length} groups
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!classesLoading &&
+        filteredGroups.length === 0 &&
+        classesWithGroups.length > 0 && (
+          <div className="p-10 border rounded-lg text-center text-muted-foreground bg-muted/10">
+            <Search className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <p className="font-medium">No groups match your filters.</p>
+            <p className="text-sm mt-1">
+              Try broadening search terms or selecting another class.
+            </p>
           </div>
-        ))}
+        )}
+
+      {!classesLoading && paginatedGroups.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {paginatedGroups.map((group, index) => {
+            const displayIndex = (safePage - 1) * Number(pageSize) + index + 1;
+            const classLabel = `${group.classCode} - ${group.className}`;
+
+            return (
+              <Card
+                key={group.id}
+                className="hover:border-primary hover:shadow-md transition-all cursor-pointer"
+                onClick={() => router.push(`/lecturer/groups/${group.id}`)}
+              >
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="flex justify-between items-start text-base gap-2">
+                    <span className="font-semibold truncate">{group.name}</span>
+                    <span className="text-xs font-normal text-muted-foreground bg-accent px-2 py-0.5 rounded-full shrink-0">
+                      #{displayIndex}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <BookOpen className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{classLabel}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <GitBranch className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="truncate">
+                      {group.topic?.name ?? (
+                        <span className="italic text-muted-foreground">
+                          No topic selected
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4 shrink-0" />
+                    <span>{group.membersCount} / 5 members</span>
+                  </div>
+
+                  <div className="flex gap-2 mt-2 flex-wrap">
+                    <Badge
+                      variant={group.jira_project_key ? 'default' : 'secondary'}
+                    >
+                      Jira {group.jira_project_key ? '✓' : '–'}
+                    </Badge>
+                    <Badge
+                      variant={group.github_repo_url ? 'default' : 'secondary'}
+                    >
+                      GitHub {group.github_repo_url ? '✓' : '–'}
+                    </Badge>
+                    {group.github_repo_url && group.jira_project_key && (
+                      <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white">
+                        <Link2 className="mr-1 h-3 w-3" /> Ready
+                      </Badge>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/lecturer/classes/${group.classId}`);
+                    }}
+                  >
+                    View class <ChevronRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {!classesLoading && paginatedGroups.length > 0 && (
+        <div className="flex flex-col gap-3 border rounded-md p-3 md:flex-row md:items-center md:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {safePage} of {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const nextPage = Math.max(1, safePage - 1);
+                setPage(nextPage);
+                replaceQuery({ page: nextPage });
+              }}
+              disabled={safePage <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const nextPage = Math.min(totalPages, safePage + 1);
+                setPage(nextPage);
+                replaceQuery({ page: nextPage });
+              }}
+              disabled={safePage >= totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Empty state */}
       {!classesLoading && classesWithGroups.length === 0 && (
