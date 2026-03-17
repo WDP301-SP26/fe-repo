@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,15 +71,7 @@ export function LoginForm({
         .getState()
         .setUser(backendData.user, backendData.access_token);
 
-      // Redirect based on user role (normalize uppercase backend enums)
-      const userRole = backendData.user?.role?.toLowerCase();
-      if (userRole === 'lecturer') {
-        router.push('/lecturer');
-      } else if (userRole === 'admin') {
-        router.push('/dashboard/admin');
-      } else {
-        router.push('/student/projects');
-      }
+      router.push(getDefaultRouteForRole(backendData.user?.role));
       router.refresh();
     } catch (err) {
       console.error('❌ Login error:', err);

@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, GitGraph, Home, Inbox, Settings, Users } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 import { NavUser } from '@/components/nav-user';
 import {
@@ -18,37 +18,11 @@ import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { useEffect } from 'react';
 
-// Menu items.
 const items = [
   {
     title: 'Overview',
-    url: '/dashboard',
+    url: '/dashboard/admin',
     icon: Home,
-  },
-  {
-    title: 'Projects',
-    url: '/dashboard/projects',
-    icon: Inbox,
-  },
-  {
-    title: 'Reports',
-    url: '/dashboard/reports',
-    icon: BarChart,
-  },
-  {
-    title: 'Jira Integration',
-    url: '/dashboard/jira',
-    icon: GitGraph,
-  },
-  {
-    title: 'Team Members',
-    url: '/dashboard/team',
-    icon: Users,
-  },
-  {
-    title: 'Settings',
-    url: '/dashboard/settings',
-    icon: Settings,
   },
 ];
 

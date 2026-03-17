@@ -6,6 +6,7 @@ import Menu from '@/components/menu';
 import { buttonVariants } from '@/components/ui/button';
 import { authAPI } from '@/lib/api';
 import { siteConfig } from '@/lib/config';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
@@ -52,10 +53,7 @@ export default function Header() {
   }, []);
 
   const getDashboardHref = () => {
-    const role = useAuthStore.getState().user?.role?.toLowerCase();
-    if (role === 'lecturer') return '/lecturer';
-    if (role === 'admin') return '/dashboard/admin';
-    return '/student';
+    return getDefaultRouteForRole(useAuthStore.getState().user?.role);
   };
 
   return (
