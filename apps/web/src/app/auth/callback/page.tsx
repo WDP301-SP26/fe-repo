@@ -1,6 +1,7 @@
 'use client';
 
 import { authAPI } from '@/lib/api';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { useAuthStore } from '@/stores/authStore';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -16,11 +17,8 @@ export default function AuthCallbackPage() {
         // Cookie is automatically sent with fetch (credentials: 'include')
         const user = await authAPI.getCurrentUser();
 
-        // Store user in Zustand state
         setUser(user);
-
-        // Redirect to dashboard
-        router.push('/dashboard');
+        router.push(getDefaultRouteForRole(user.role));
       } catch (err) {
         setError('Failed to authenticate. Please try again.');
         console.error('Auth callback error:', err);

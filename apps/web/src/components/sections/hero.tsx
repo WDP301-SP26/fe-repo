@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Icons } from '@/components/icons';
 import HeroVideoDialog from '@/components/magicui/hero-video';
 import { buttonVariants } from '@/components/ui/button';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
@@ -98,10 +99,7 @@ function HeroCTA() {
   }, []);
 
   const getDashboardHref = () => {
-    const role = user?.role?.toLowerCase();
-    if (role === 'lecturer') return '/lecturer';
-    if (role === 'admin') return '/dashboard/admin';
-    return '/student';
+    return getDefaultRouteForRole(user?.role);
   };
 
   return (

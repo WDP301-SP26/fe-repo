@@ -3,6 +3,7 @@
 import { Icons } from '@/components/icons';
 import Section from '@/components/section';
 import { buttonVariants } from '@/components/ui/button';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
@@ -17,10 +18,7 @@ export default function CtaSection() {
   }, []);
 
   const getDashboardHref = () => {
-    const role = user?.role?.toLowerCase();
-    if (role === 'lecturer') return '/lecturer';
-    if (role === 'admin') return '/dashboard/admin';
-    return '/student';
+    return getDefaultRouteForRole(user?.role);
   };
 
   return (

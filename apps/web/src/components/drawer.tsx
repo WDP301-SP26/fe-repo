@@ -8,13 +8,14 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { siteConfig } from '@/lib/config';
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 import { IoMenuSharp } from 'react-icons/io5';
 
 export default function drawerDemo() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   return (
     <Drawer>
@@ -52,7 +53,7 @@ export default function drawerDemo() {
         <DrawerFooter>
           {isAuthenticated ? (
             <Link
-              href="/dashboard"
+              href={getDefaultRouteForRole(user?.role)}
               className={cn(
                 buttonVariants({ variant: 'default' }),
                 'w-full sm:w-auto text-background flex gap-2',

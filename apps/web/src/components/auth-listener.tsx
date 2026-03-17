@@ -1,5 +1,6 @@
 'use client';
 
+import { getDefaultRouteForRole } from '@/lib/routes';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
@@ -18,13 +19,14 @@ export function AuthListener() {
 
     if (token && userStr && status === 'unauthenticated') {
       const decodedUser = decodeURIComponent(userStr);
+      const parsedUser = JSON.parse(decodedUser);
       signIn('credentials', {
         token,
         user: decodedUser,
         redirect: false,
       }).then((result) => {
         if (result?.ok) {
-          router.replace('/');
+          router.replace(getDefaultRouteForRole(parsedUser.role));
           router.refresh();
         }
       });
