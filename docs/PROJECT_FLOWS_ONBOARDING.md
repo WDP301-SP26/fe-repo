@@ -1,300 +1,169 @@
-# Project Flows Onboarding (Jira-GitHub Manager)
+# Project Flows (Demo Version)
 
-Tài liệu này dành cho người mới vào dự án để nắm nhanh:
+Tài liệu này dùng để demo hội đồng theo 7 luồng chính của dự án.
 
-- Dự án này hiện có các luồng nghiệp vụ nào
-- Luồng nào đã chạy ổn, luồng nào mới một phần
-- Thứ tự triển khai ít rủi ro cho Codex Chat thực hiện
+## Update từ Codex changelog
 
----
+- Đã có bản fix `Routing/Auth Consistency Hardening` trên nhánh `feat/new-flow-comingup` (commit `218eca8`).
+- Trạng thái trong tài liệu này phản ánh theo hướng: nếu PR merge vào `main` thì Luồng 1 được coi là hoàn thiện ở mức demo.
 
-## 1) Phạm vi thật của dự án (không phải dental)
+## 1. Scope
 
-Ví dụ "đánh giá răng / tư vấn nha sĩ / VR" là mô hình tham chiếu.  
-Project hiện tại là **Jira-GitHub Manager cho SWP391**.
+Project hiện tại: **Jira-GitHub Manager cho SWP391**.
 
-### Modules hiện tại (business modules)
+Modules:
 
 - Student
+- Team Leader
 - Lecturer
-- Group
-- Project (gắn với Group)
-- Auth & Account Linking (GitHub/Jira)
-- Reports (SRS, Assignments, Commits)
-- Admin (mới có dấu hiệu route/role, chưa hoàn chỉnh end-to-end)
+- Admin
+- Group/Project
+- Auth & Account Linking
+- Reports
 
 ---
 
-## 2) Luồng nghiệp vụ đã hoàn thành
+## 2. Bảy luồng chính
 
-## Luồng 1: Đăng nhập và phân vai người dùng
+## Luồng 1: Đăng nhập và phân vai
 
-**Mục tiêu:** User đăng nhập, vào đúng khu vực theo role.  
-**Trạng thái:** Hoàn thành cơ bản.
+**Mục tiêu:** Người dùng đăng nhập và đi đúng khu vực theo role.
 
-### Happy path
+### Happy case
 
-1. User đăng nhập qua form.
-2. Frontend gọi backend login, nhận token + user.
-3. Tạo session và lưu state local.
-4. Điều hướng đến trang theo role (lecturer/student).
+1. User nhập email/password.
+2. Hệ thống xác thực thành công.
+3. Hệ thống tạo session + token.
+4. User được điều hướng đến đúng trang theo role.
 
-### Giá trị
+### Trạng thái triển khai
 
-- Có nền tảng role-based để chạy các flow phía sau.
-
----
-
-## Luồng 2: Student quản lý nhóm dự án
-
-**Mục tiêu:** Student xem nhóm, vào workspace nhóm, thao tác repo/Jira.  
-**Trạng thái:** Hoàn thành tốt (core flow).
-
-### Happy path
-
-1. Student xem danh sách nhóm của mình.
-2. Mở chi tiết nhóm.
-3. Liên kết repo GitHub cho group (link repo có sẵn hoặc tạo mới + link).
-4. Liên kết Jira project key cho group.
-5. Theo dõi trạng thái liên kết Jira/GitHub ngay trên workspace.
-
-### Giá trị
-
-- Group đã có điểm neo dữ liệu để đồng bộ và tạo báo cáo.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện / có thể xem là hoàn thiện cho demo sau khi merge PR**.
 
 ---
 
-## Luồng 3: Student quản lý project cá nhân/nhóm từ GitHub
+## Luồng 2: Student tham gia và quản lý nhóm
 
-**Mục tiêu:** Chọn repo, kết nối với Jira để đồng bộ yêu cầu-coding.  
-**Trạng thái:** Hoàn thành cơ bản.
+**Mục tiêu:** Student theo dõi nhóm, vào workspace nhóm, theo dõi thông tin nhóm.
 
-### Happy path
+### Happy case
 
-1. Lấy danh sách repo GitHub của user.
-2. Tìm kiếm/lọc repo.
-3. Kiểm tra linked accounts (Jira đã connect chưa).
-4. Thực hiện liên kết Jira trước khi link project.
+1. Student mở danh sách nhóm của mình.
+2. Chọn một nhóm để vào workspace.
+3. Xem thông tin nhóm, thành viên, trạng thái tích hợp.
 
-### Giá trị
+### Trạng thái triển khai
 
-- Tạo đường dẫn dữ liệu từ GitHub/Jira vào hệ thống.
-
----
-
-## Luồng 4: Lecturer giám sát groups theo class
-
-**Mục tiêu:** Lecturer có dashboard và drill-down theo class/group.  
-**Trạng thái:** Hoàn thành tốt.
-
-### Happy path
-
-1. Lecturer xem danh sách class.
-2. Tải groups theo từng class.
-3. Vào chi tiết group để xem tình trạng tích hợp, repos, commits gần đây.
-4. Theo dõi các chỉ số nhóm phục vụ đánh giá.
-
-### Giá trị
-
-- Có màn hình điều phối chính cho giảng viên.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện** (core flow ổn định).
 
 ---
 
-## Luồng 5: Tạo báo cáo học phần từ Jira/GitHub
+## Luồng 3: Liên kết GitHub cho nhóm/project
 
-**Mục tiêu:** Sinh báo cáo hỗ trợ đánh giá học phần.  
-**Trạng thái:** Hoàn thành khá đầy đủ.
+**Mục tiêu:** Gắn repo GitHub vào group để theo dõi đóng góp.
 
-### Các loại report đã có endpoint/UI
+### Happy case
 
-1. SRS report
-2. Assignments summary (Jira)
-3. Commits stats (GitHub)
+1. User đã connect GitHub account.
+2. User chọn repo có sẵn hoặc tạo repo mới.
+3. Hệ thống link repo vào group thành công.
+4. Nhóm thấy trạng thái linked và dữ liệu commit có thể truy xuất.
 
-### Giá trị
+### Trạng thái triển khai
 
-- Đúng trọng tâm bài toán SWP391: giảm tổng hợp thủ công.
-
----
-
-## 3) Luồng mới hoàn thành một phần hoặc chưa ổn định
-
-## Luồng A: Admin end-to-end
-
-**Trạng thái:** Một phần.
-
-### Hiện trạng
-
-- Có role `admin` trong logic và route target.
-- Nhưng tuyến `/dashboard/admin` chưa hoàn thiện đồng bộ với toàn hệ thống.
-
-### Hệ quả
-
-- Có thể phát sinh điều hướng vào khu vực chưa sẵn sàng.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Chưa 100%** (một số trường hợp lỗi token/quyền cần xử lý sâu hơn).
 
 ---
 
-## Luồng B: Routing/Auth consistency
+## Luồng 4: Liên kết Jira và đồng bộ task
 
-**Trạng thái:** Một phần.
+**Mục tiêu:** Gắn Jira project vào group để lấy task/status.
 
-### Hiện trạng
+### Happy case
 
-- Có sai khác giữa một số route auth (`/register` vs `/signup`).
-- Một vài callback/redirect chưa đồng nhất chuẩn điều hướng theo role.
+1. User connect Jira account.
+2. Chọn Jira project key và link vào group.
+3. Hệ thống xác nhận linked.
+4. Dữ liệu task của Jira được dùng cho analytics/report.
 
-### Hệ quả
+### Trạng thái triển khai
 
-- Người dùng có thể gặp nhảy trang không mong muốn ở edge cases.
-
----
-
-## Luồng C: Pagination production-grade
-
-**Trạng thái:** Một phần.
-
-### Hiện trạng
-
-- Nhiều màn hình vẫn theo mô hình fetch toàn bộ + phân trang client/local state.
-- Chưa chuẩn hóa server pagination + URL query state cho các list lớn.
-
-### Hệ quả
-
-- Khi dữ liệu tăng sẽ ảnh hưởng hiệu năng và khả năng chia sẻ link trạng thái.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Chưa 100%** (cần tiếp tục harden validate và handling dữ liệu thiếu).
 
 ---
 
-## Luồng D: SEO production-grade
+## Luồng 5: Lecturer theo dõi lớp và nhóm
 
-**Trạng thái:** Một phần.
+**Mục tiêu:** Lecturer giám sát nhiều class/group từ một dashboard.
 
-### Hiện trạng
+### Happy case
 
-- Metadata tổng đã có.
-- Nhưng chưa đầy đủ page-level SEO cho các route động + chưa chốt bộ robots/sitemap hoàn chỉnh cho release.
+1. Lecturer mở dashboard.
+2. Xem danh sách lớp và nhóm theo lớp.
+3. Drill-down vào chi tiết group.
+4. Theo dõi integrations, tiến độ và commit gần đây.
 
-### Hệ quả
+### Trạng thái triển khai
 
-- Mức độ tối ưu index/search chưa tốt cho môi trường production.
-
----
-
-## 4) Tóm tắt mức độ hoàn thành (onboarding nhanh)
-
-- **Đã ổn:** Auth cơ bản, Student workspace, Lecturer monitoring, Reports core.
-- **Đang cần chuẩn hóa:** Routing consistency, Admin flow, Pagination chuẩn server, SEO production.
-- **Định hướng gần:** Chuẩn hóa quality gates để Codex Chat triển khai theo phase an toàn.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Gần hoàn thiện** (đang cần tối ưu thêm về pagination/đồng nhất UX).
 
 ---
 
-## 5) Kế hoạch triển khai ít rủi ro nhất cho Codex Chat
+## Luồng 6: Tạo báo cáo học phần
 
-Nguyên tắc: làm từ **blast radius nhỏ -> lớn**, ưu tiên fix tính đúng trước tính đẹp.
+**Mục tiêu:** Sinh báo cáo SRS, Assignments, Commits cho chấm điểm.
 
-## Phase 1 (Rủi ro thấp): Routing/Auth Consistency Hardening
+### Happy case
 
-**Mục tiêu:** Chốt route matrix và bỏ redirect sai.
+1. User chọn nhóm và loại báo cáo.
+2. Hệ thống gọi backend report API.
+3. Trả về dữ liệu tổng hợp từ Jira/GitHub.
+4. User xem kết quả và dùng cho đánh giá.
 
-### Task
+### Trạng thái triển khai
 
-1. Chuẩn hóa một nguồn chân lý cho route auth (`signin/signup`).
-2. Đồng bộ callback redirect theo role thực tế.
-3. Soát toàn bộ hardcoded redirect đến route chưa tồn tại.
-4. Viết checklist route-role regression.
-
-### Exit criteria
-
-- Không còn redirect vào route không tồn tại.
-- Flow login/callback qua 3 role chạy ổn định.
+- **Đã triển khai:** Có.
+- **Đã hoàn thiện hết chưa:** **Chưa 100%** (cần tăng độ tin cậy mapping dữ liệu và kiểm soát chất lượng báo cáo).
 
 ---
 
-## Phase 2 (Rủi ro thấp-trung bình): Admin Scope Clarification
+## Luồng 7: Admin quản trị hệ thống
 
-**Mục tiêu:** Hoặc bật tối thiểu admin page, hoặc tạm khóa an toàn các redirect admin.
+**Mục tiêu:** Quản trị tài khoản/quyền và vận hành nền tảng.
 
-### Task
+### Happy case
 
-1. Quyết định chính thức: có ship admin ở release hiện tại không.
-2. Nếu chưa ship: chặn redirect admin về fallback an toàn.
-3. Nếu ship: tạo skeleton `/dashboard/admin` + guard rõ ràng.
+1. Admin đăng nhập vào khu vực quản trị.
+2. Quản lý user/role và cấu hình hệ thống.
+3. Theo dõi trạng thái vận hành tổng thể.
 
-### Exit criteria
+### Trạng thái triển khai
 
-- Không còn dead-end cho role admin.
-
----
-
-## Phase 3 (Rủi ro trung bình): Server Pagination chuẩn hóa
-
-**Mục tiêu:** Áp dụng cho các list chính (classes/groups/projects).
-
-### Task
-
-1. Chuẩn contract `page`, `size`, `sort`, `q` cho API.
-2. Đồng bộ hooks/data layer sang query-based fetching.
-3. Đồng bộ UI pagination với URL search params.
-4. Thêm loading/empty/error states nhất quán.
-
-### Exit criteria
-
-- List lớn không còn fetch all mặc định.
-- Có deep-link cho trạng thái phân trang/lọc.
+- **Đã triển khai:** **Một phần**.
+- **Đã hoàn thiện hết chưa:** **Chưa** (đã có admin-safe fallback page, nhưng admin console end-to-end chưa đầy đủ).
 
 ---
 
-## Phase 4 (Rủi ro trung bình): SEO Production Pack
+## 3. Kết luận nhanh để demo hội đồng
 
-**Mục tiêu:** Tăng tính discoverability và chuẩn technical SEO.
-
-### Task
-
-1. Chuẩn hóa `siteConfig` theo brand/domain thật.
-2. Thêm metadata theo page động quan trọng.
-3. Bổ sung robots/sitemap theo môi trường.
-4. Rà noindex cho route nội bộ/private.
-
-### Exit criteria
-
-- Metadata/canonical nhất quán production.
-- Robots/sitemap hoạt động đúng với route public.
+- 7 luồng chính đều đã được xác định rõ.
+- **Nếu PR `feat/new-flow-comingup` được merge:** 6 luồng core đạt mức demo ổn định hơn (đặc biệt Luồng 1).
+- **Luồng Admin** vẫn là phần chưa hoàn thiện end-to-end.
+- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination, chất lượng report, admin scope.
 
 ---
 
-## Phase 5 (Rủi ro cao hơn): Report Quality & Trust
+## 4. Nơi theo dõi task tiếp theo
 
-**Mục tiêu:** Nâng độ tin cậy dữ liệu đánh giá.
+Để tránh trùng lịch sử giữa nhiều file, toàn bộ task triển khai tiếp theo cho Codex được quản lý tập trung tại:
 
-### Task
+- `docs/codex/codex-task-changelog.md`
 
-1. Chuẩn hóa mapping Jira task <-> GitHub contribution.
-2. Thêm cảnh báo dữ liệu thiếu/không đồng bộ.
-3. Thêm audit trail cho lần generate report.
+Lịch sử kết quả đã làm và commit thực thi tiếp tục theo dõi tại:
 
-### Exit criteria
-
-- Báo cáo có quality signals rõ ràng, dễ audit.
-
----
-
-## 6) Cách làm việc đề xuất với Codex Chat (Project Lead mode)
-
-1. Mỗi phase tạo 1 branch + 1 milestone nhỏ.
-2. Mỗi PR chỉ 1 mục tiêu, không trộn concerns.
-3. Bắt buộc có checklist trước merge:
-   - Route regression checklist
-   - Auth role matrix checklist
-   - API contract checklist (nếu đụng pagination)
-   - SEO checklist (nếu đụng metadata/robots/sitemap)
-4. Sau mỗi phase: chốt `what changed / impact / rollback plan`.
-
----
-
-## 7) TL;DR cho người mới
-
-Nếu bạn mới vào team, hãy hiểu theo thứ tự:
-
-1. Đây là nền tảng đồng bộ Jira + GitHub cho SWP391.
-2. Core flow đã chạy: Student-Group-Project linking + Lecturer monitoring + Reports.
-3. Việc cần làm ngay để sản phẩm ổn định hơn: routing/auth consistency, admin scope, pagination, SEO.
-4. Làm theo phase ở mục 5 để giảm rủi ro khi giao cho Codex Chat triển khai.
+- `docs/codex/codex_report_changelog.md`
