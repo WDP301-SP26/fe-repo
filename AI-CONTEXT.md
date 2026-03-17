@@ -90,7 +90,7 @@ fe-repo/                          # ROOT - Nx Workspace
 
 1. **Dependencies in ROOT** = Shared by all apps/libs
 2. **Dependencies in apps/web** = Only for web app
-3. **Always use `nx` commands:** `nx dev web`, `nx lint web`, `nx affected -t test`
+3. **Always use `nx` commands:** read Nx docs ,`nx affected -t test`
 4. **Path aliases:** `@/*` maps to `apps/web/src/*`
 
 ---

@@ -69,6 +69,13 @@ pnpm exec nx run web:dev
 
 > **Note:** Do NOT use `nx dev web` — it will not work in this project. Always use `pnpm exec nx run web:dev`.
 
+## Git Branch Workflow (Both Repos)
+
+- Always start new work from the latest `main` on **both** repos.
+- If local `main` is not aligned with remote `main`, **fetch/pull first**, then create a new branch.
+- Create a new branch for the task (no direct work on `main`).
+- Prefer **rebase onto `main`**; avoid merges whenever possible.
+
 ### Build Web Application
 
 ```bash
