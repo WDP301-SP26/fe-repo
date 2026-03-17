@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
 const PAGE_SIZE_OPTIONS = ['6', '9', '12'] as const;
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE'] as const;
@@ -45,7 +45,7 @@ function parsePositiveInt(value: string | null, fallback = 1): number {
   return Math.floor(parsed);
 }
 
-export default function MyGroupsPage() {
+function MyGroupsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -395,5 +395,35 @@ export default function MyGroupsPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function MyGroupsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardHeader className="pb-4">
+                <Skeleton className="h-6 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
+              </CardContent>
+              <CardFooter className="bg-muted/50 p-4 border-t">
+                <Skeleton className="h-9 w-full" />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      }
+    >
+      <MyGroupsPageContent />
+    </Suspense>
   );
 }

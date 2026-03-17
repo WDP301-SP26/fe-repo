@@ -23,7 +23,7 @@ import {
   Users,
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 
 const PAGE_SIZE_OPTIONS = ['8', '12', '16'] as const;
 const INTEGRATION_OPTIONS = ['ALL', 'READY', 'MISSING'] as const;
@@ -69,7 +69,7 @@ interface FlattenedGroup {
   semester: string;
 }
 
-export default function GroupsPage() {
+function GroupsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -550,5 +550,25 @@ export default function GroupsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function GroupsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-72" />
+          <Skeleton className="h-24 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-40 w-full" />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <GroupsPageContent />
+    </Suspense>
   );
 }
