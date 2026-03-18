@@ -5,7 +5,9 @@ Tài liệu này dùng để demo hội đồng theo 7 luồng chính của dự
 ## Update từ Codex changelog
 
 - Đã có bản fix `Routing/Auth Consistency Hardening` trên nhánh `feat/new-flow-comingup` (commit `218eca8`).
-- Trạng thái trong tài liệu này phản ánh theo hướng: nếu PR merge vào `main` thì Luồng 1 được coi là hoàn thiện ở mức demo.
+- Đã bổ sung `Admin navigation thật` (sidebar + layout + breadcrumb) cho `/dashboard/admin`.
+- Đã tách riêng `Topic Lab` cho Team Leader tại `/student/groups/:id/topic-lab` để trải nghiệm AI ideation.
+- Trạng thái trong tài liệu này phản ánh theo hướng: nếu PR merge vào `main` thì các luồng FE demo sẽ được cập nhật tương ứng.
 
 ## 1. Scope
 
@@ -52,11 +54,12 @@ Modules:
 1. Student mở danh sách nhóm của mình.
 2. Chọn một nhóm để vào workspace.
 3. Xem thông tin nhóm, thành viên, trạng thái tích hợp.
+4. Team Leader có thể mở Topic Lab để AI suggest/refine đề tài, rồi apply đề tài vào nhóm.
 
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có search/filter/pagination cho danh sách nhóm).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có search/filter/pagination cho danh sách nhóm + Topic Lab tách riêng).
 
 ---
 
@@ -145,16 +148,16 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** **Một phần**.
-- **Đã hoàn thiện hết chưa:** **Chưa** (đã có admin-safe fallback page, nhưng admin console end-to-end chưa đầy đủ).
+- **Đã hoàn thiện hết chưa:** **Chưa** (đã có admin navigation và các màn khung FE: Overview/Users/Classes/Integrations; BE admin APIs & audit log vẫn pending).
 
 ---
 
 ## 3. Kết luận nhanh để demo hội đồng
 
 - 7 luồng chính đều đã được xác định rõ.
-- **Nếu PR `feat/new-flow-comingup` được merge:** 6 luồng core đạt mức demo ổn định hơn (đặc biệt Luồng 1).
-- **Luồng Admin** vẫn là phần chưa hoàn thiện end-to-end.
-- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination, chất lượng report, admin scope.
+- **Nếu PR `feat/new-flow-comingup` được merge:** FE demo cho các luồng chính ổn định hơn, bao gồm cả Admin IA/navigation và Topic Lab.
+- **Luồng Admin** vẫn chưa hoàn thiện end-to-end vì thiếu BE admin APIs + audit.
+- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination server-side contract, chất lượng report, admin BE scope.
 
 ---
 
