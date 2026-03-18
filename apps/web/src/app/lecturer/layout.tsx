@@ -1,4 +1,5 @@
 import { LecturerSidebar } from '@/components/lecturer-sidebar';
+import { PortalHeader } from '@/components/portal-header';
 import { Separator } from '@/components/ui/separator';
 import {
   SidebarInset,
@@ -18,11 +19,11 @@ export default function LecturerLayout({
         <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Lecturer Portal</span>
-          </div>
+          <PortalHeader scope="lecturer" />
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-6">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-6 bg-muted/10 min-h-[calc(100vh-4rem)]">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -13,38 +13,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { isActiveMenuItem, lecturerMenuItems } from '@/lib/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { AlertTriangle, BarChart3, Home, Settings, Users2 } from 'lucide-react';
+import { Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-
-const lecturerMenuItems = [
-  {
-    title: 'Overview',
-    url: '/lecturer',
-    icon: Home,
-  },
-  {
-    title: 'My Student Groups',
-    url: '/lecturer/groups',
-    icon: Users2,
-  },
-  {
-    title: 'Analytics',
-    url: '/lecturer/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Free-rider Alerts',
-    url: '/lecturer/alerts',
-    icon: AlertTriangle,
-  },
-  {
-    title: 'Settings',
-    url: '/lecturer/settings',
-    icon: Settings,
-  },
-];
 
 export function LecturerSidebar() {
   const user = useAuthStore((state) => state.user);
@@ -76,8 +49,7 @@ export function LecturerSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {lecturerMenuItems.map((item) => {
-                const isActive =
-                  pathname === item.url || pathname.startsWith(`${item.url}/`);
+                const isActive = isActiveMenuItem(pathname, item.url);
 
                 return (
                   <SidebarMenuItem key={item.title}>
