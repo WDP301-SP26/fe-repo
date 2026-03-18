@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { fetchAPI } from '@/lib/api';
+import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
   CheckCircle2,
@@ -37,12 +38,8 @@ export default function StudentSettingsPage() {
     fetchAPI<LinkedAccount[]>('/api/auth/linked-accounts'),
   );
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-  const frontendUrl =
-    process.env.NEXT_PUBLIC_FRONTEND_URL ||
-    (typeof window !== 'undefined'
-      ? window.location.origin
-      : 'http://localhost:3000');
+  const apiUrl = getApiBaseUrl();
+  const frontendUrl = getFrontendBaseUrl();
 
   const handleConnectGithub = () => {
     window.location.href = `${apiUrl}/api/auth/github?redirect_uri=${frontendUrl}/student/settings`;

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 const stats = [
@@ -46,18 +47,33 @@ const featureCards = [
   },
 ];
 
-function ImagePlaceholder({
+function LandingImage({
+  src,
+  alt,
   title,
   subtitle,
+  priority = false,
 }: {
+  src: string;
+  alt: string;
   title: string;
   subtitle: string;
+  priority?: boolean;
 }) {
   return (
-    <div className="w-full rounded-2xl border border-dashed border-slate-400/70 bg-slate-100/70 p-6 text-left">
+    <div className="w-full rounded-2xl border border-slate-200 bg-slate-100/70 p-6 text-left">
       <p className="text-sm font-semibold text-slate-800">{title}</p>
       <p className="mt-2 text-sm text-slate-600">{subtitle}</p>
-      <div className="mt-6 h-40 rounded-xl border border-dashed border-slate-400/70 bg-white" />
+      <div className="relative mt-6 h-56 overflow-hidden rounded-xl border border-slate-200 bg-white md:h-72">
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          priority={priority}
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
+        />
+      </div>
     </div>
   );
 }
@@ -143,9 +159,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        <ImagePlaceholder
+        <LandingImage
+          src="/landing/hero-visual.png"
+          alt="JIHUB capabilities collage"
           title="Hero Visual Placeholder"
-          subtitle="Leave blank intentionally. Add AI-generated product hero image later."
+          subtitle="A unified view of topic quality checks, role navigation, and live execution analytics."
+          priority
         />
       </section>
 
@@ -169,9 +188,11 @@ export default function HomePage() {
               ))}
             </ul>
           </div>
-          <ImagePlaceholder
+          <LandingImage
+            src="/landing/problem-scene.png"
+            alt="Problem scene showing disconnected tools and team confusion"
             title="Problem Scene Placeholder"
-            subtitle="Use a visual narrative showing confusion across tools and teams."
+            subtitle="A visual narrative showing disconnected tools, duplicated effort, and low visibility."
           />
         </div>
       </section>
@@ -226,9 +247,11 @@ export default function HomePage() {
               </li>
             </ol>
           </div>
-          <ImagePlaceholder
+          <LandingImage
+            src="/landing/workflow-diagram.png"
+            alt="Workflow diagram for topic selection, generation, validation, and workspace initialization"
             title="Workflow Diagram Placeholder"
-            subtitle="Add a clean process-style illustration for the 4-step flow."
+            subtitle="A 4-step flow from topic ideation to unique validation and Jira/GitHub workspace setup."
           />
         </div>
       </section>
@@ -252,6 +275,14 @@ export default function HomePage() {
               <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
             </div>
           ))}
+        </div>
+        <div className="mt-6">
+          <LandingImage
+            src="/landing/capability-collage.png"
+            alt="Capability collage of role-based navigation, AI topic drafting, and operational analytics"
+            title="Capability Collage"
+            subtitle="Visual summary of the core experience: unique topic check, AI draft editing, role-based navigation, and delivery signals."
+          />
         </div>
       </section>
 

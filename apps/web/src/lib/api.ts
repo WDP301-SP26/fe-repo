@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/authStore';
+import { getApiBaseUrl } from '@/lib/runtime-config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = getApiBaseUrl();
 
 interface FetchOptions extends RequestInit {
   requireAuth?: boolean;
