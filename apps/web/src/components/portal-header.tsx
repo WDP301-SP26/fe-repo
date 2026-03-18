@@ -11,7 +11,7 @@ import { buildNavigationLabel } from '@/lib/navigation';
 import { usePathname } from 'next/navigation';
 
 interface PortalHeaderProps {
-  scope: 'student' | 'lecturer';
+  scope: 'student' | 'lecturer' | 'admin';
 }
 
 export function PortalHeader({ scope }: PortalHeaderProps) {

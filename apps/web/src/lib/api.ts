@@ -147,7 +147,32 @@ export const groupAPI = {
 
 // Topic API methods
 export const topicAPI = {
-  getTopics: () => fetchAPI<any[]>('/api/topics'),
+  getTopics: (includeTaken = true) =>
+    fetchAPI<any[]>(`/api/topics?includeTaken=${includeTaken}`),
+  getAvailableTopics: () => fetchAPI<any[]>('/api/topics/available'),
+  generateTopicIdea: (data: {
+    mode: 'AUTO' | 'REFINE';
+    seed_name?: string;
+    project_domain?: string;
+    team_context?: string;
+    problem_space?: string;
+    primary_actors_hint?: string;
+  }) =>
+    fetchAPI<any>('/api/topics/ai/generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  createAiTopic: (data: {
+    topic_name: string;
+    context: string;
+    problem_statement: string;
+    primary_actors: string;
+    uniqueness_rationale: string;
+  }) =>
+    fetchAPI<any>('/api/topics/ai/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // Notification API methods

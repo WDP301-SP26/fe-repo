@@ -6,47 +6,86 @@
 
 ## Current Branch
 
-- Branch: feat/new-flow-comingup
-- Remote tracking: origin/feat/new-flow-comingup
-- Recent commits:
-  - 85a6d91 fix: searh params
-  - 4ac34b1 fix: url query sync
-  - 6df9d4d refactor code structure
-  - 218eca8 fix: harden role redirects and legacy auth routes
+- FE branch: feat/new-flow-comingup
+- FE remote tracking: origin/feat/new-flow-comingup
+- BE branch: main
 
-## What Was Done Recently
+## Current Status Summary
 
-1. Added URL query sync on groups list pages:
-   - Student groups: q, status, size, page
-   - Lecturer groups: q, classId, integration, size, page
-2. Added Suspense boundary around pages using useSearchParams to satisfy Next.js build requirement.
-3. Verified focused test passes:
-   - pnpm nx test web --runInBand --testPathPatterns=src/lib/routes.spec.ts
-4. Verified pre-push dry-run passes after Suspense fix.
+Completed in this window:
 
-## Important Files
+1. Landing page was redesigned from scratch (replacing old template structure).
+2. Landing image prompts were prepared and image placement rules were documented.
+3. AI Topic flow was implemented end-to-end (FE + BE), including:
+   - AI generate/refine topic draft API
+   - Save AI-generated topic API
+   - Duplicate-topic protection
+4. Student Topic Lab was separated into a dedicated page for leader workflow.
+5. Admin navigation was implemented with real structure:
+   - Sidebar
+   - Layout
+   - Breadcrumb header
+   - Admin section routes (overview/users/classes/integrations)
+6. Navigation QA/admin sync notes were updated in root documentation.
 
-- apps/web/src/app/student/groups/page.tsx
-- apps/web/src/app/lecturer/groups/page.tsx
-- apps/web/src/lib/routes.spec.ts
-- docs/codex/codex-task-changelog.md
-- docs/PROJECT_FLOWS_ONBOARDING.md
+## Current FE Working Tree (Uncommitted)
 
-## Known Issue / Note
+- A LANDING_IMAGE_PROMPTS.md
+- A apps/web/public/landing/README.md
+- A apps/web/public/landing/capability-collage.png
+- A apps/web/public/landing/hero-visual.png
+- A apps/web/public/landing/problem-scene.png
+- A apps/web/public/landing/workflow-diagram.png
+- A apps/web/src/app/dashboard/admin/classes/page.tsx
+- A apps/web/src/app/dashboard/admin/integrations/page.tsx
+- M apps/web/src/app/dashboard/admin/page.tsx
+- A apps/web/src/app/dashboard/admin/users/page.tsx
+- M apps/web/src/app/dashboard/layout.tsx
+- M apps/web/src/app/page.tsx
+- M apps/web/src/app/student/groups/[id]/page.tsx
+- A apps/web/src/app/student/groups/[id]/topic-lab/page.tsx
+- A apps/web/src/components/admin-sidebar.tsx
+- M apps/web/src/components/portal-header.tsx
+- M apps/web/src/lib/api.ts
+- M apps/web/src/lib/navigation.ts
 
-- Husky prints deprecation warning for legacy lines in .husky/pre-push, but push check currently passes.
-- next build run manually from wrong folder can fail with "No package.json". Use repo root fe-repo.
+## Current BE Working Tree
+
+- No unstaged/staged changes detected at latest check.
+
+## Important Files (Latest)
+
+- apps/web/src/app/page.tsx
+- LANDING_IMAGE_PROMPTS.md
+- apps/web/public/landing/README.md
+- apps/web/src/app/student/groups/[id]/topic-lab/page.tsx
+- apps/web/src/app/student/groups/[id]/page.tsx
+- apps/web/src/lib/api.ts
+- apps/web/src/lib/navigation.ts
+- apps/web/src/components/admin-sidebar.tsx
+- apps/web/src/app/dashboard/layout.tsx
+- apps/web/src/app/dashboard/admin/page.tsx
+- apps/web/src/app/dashboard/admin/users/page.tsx
+- apps/web/src/app/dashboard/admin/classes/page.tsx
+- apps/web/src/app/dashboard/admin/integrations/page.tsx
+- ../NAVIGATION_SCREEN_DIAGRAM.md
+
+## Notes / Operational Caveats
+
+1. Run FE commands from `fe-repo` root. Running from workspace root can cause missing package.json errors.
+2. Nx/Next build output still shows baseline-browser-mapping staleness warning (non-blocking).
+3. Landing images are now already present in `apps/web/public/landing/`.
 
 ## Next Priority Tasks
 
-1. Implement server-side pagination contract (Task T-006):
-   - FE switch from fetch-all to data + meta responses
-   - BE provide pagination/filter endpoints and metadata
-2. Keep URL query as source of truth while moving data fetching to backend pagination.
-3. Add contract tests for pagination metadata.
+1. Commit and push current FE changes in logical commits (landing, admin nav, topic lab split).
+2. Optional polish: wire actual landing `<img>` rendering to use files in `apps/web/public/landing/` (currently placeholders are still structural blocks).
+3. Resume Task T-006 (server-side pagination contract FE + BE):
+   - Keep URL query sync behavior unchanged
+   - Move groups pages to backend paginated responses with metadata
 
 ## Rehydrate Prompt For New Context
 
 Use this prompt at the start of a new context window:
 
-"Continue from CONTEXT_HANDOFF.md and docs/codex/codex-task-changelog.md. We are on branch feat/new-flow-comingup. Current focus is Task T-006 (server-side pagination contract FE+BE). First validate current build and push checks, then implement BE contract and migrate FE groups pages from fetch-all to paginated API with metadata. Keep URL query sync behavior unchanged."
+"Continue from CONTEXT_HANDOFF.md in fe-repo. Current FE branch is feat/new-flow-comingup with uncommitted changes for landing redesign, admin navigation, and Topic Lab separation. First verify `pnpm nx build web`, then decide whether to commit current FE changes or continue with Task T-006 server-side pagination contract (FE + BE) while preserving URL query sync behavior."

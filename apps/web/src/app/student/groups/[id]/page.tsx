@@ -26,8 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useTopics } from '@/hooks/use-api';
-import { githubAPI, groupAPI, jiraAPI, reportAPI } from '@/lib/api';
+import { githubAPI, groupAPI, jiraAPI, reportAPI, topicAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import {
   ArrowLeft,
@@ -47,6 +46,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -74,7 +74,10 @@ export default function GroupDetailsPage() {
     isLoading: loadingGroup,
   } = useSWR(`/api/groups/${groupId}`, () => groupAPI.getGroupDetails(groupId));
 
-  const { data: topics } = useTopics();
+  const { data: topics, isLoading: loadingTopics } = useSWR(
+    '/api/topics/available',
+    () => topicAPI.getAvailableTopics(),
+  );
 
   // Fetch user's GitHub repos (for the picker)
   const { data: reposData, isLoading: loadingRepos } = useSWR(
@@ -302,14 +305,14 @@ export default function GroupDetailsPage() {
   };
 
   const renderTopicSelector = () => (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="space-y-2">
         <label className="text-sm font-medium">Available Topics</label>
         <select
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           value={selectedTopic}
           onChange={(e) => setSelectedTopic(e.target.value)}
-          disabled={!isLeader || isProvisioning}
+          disabled={!isLeader || isProvisioning || loadingTopics}
         >
           <option value="">-- Choose a Topic --</option>
           {topics?.map((topic: any) => (
@@ -318,7 +321,28 @@ export default function GroupDetailsPage() {
             </option>
           ))}
         </select>
+        <p className="text-xs text-muted-foreground">
+          Rule: a topic cannot be reused once selected by another group.
+        </p>
       </div>
+
+      {isLeader && (
+        <Card className="border-dashed border-primary/40 bg-primary/5">
+          <CardContent className="pt-5 space-y-2">
+            <p className="text-sm font-semibold">Need a new topic idea?</p>
+            <p className="text-xs text-muted-foreground">
+              Open Topic Lab for AI ideation (auto-suggest or refine seed name)
+              and save a validated topic back to this group.
+            </p>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href={`/student/groups/${groupId}/topic-lab`}>
+                Open Topic Lab
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex gap-2">
         <Button
           className="flex-1 bg-blue-600 hover:bg-blue-700"
@@ -370,7 +394,8 @@ export default function GroupDetailsPage() {
           <CardHeader>
             <CardTitle className="text-xl">Project Workspace</CardTitle>
             <CardDescription>
-              Select a topic to auto-create GitHub and Jira instances.
+              Select an available topic here, or use Topic Lab to create a new
+              AI-assisted topic before provisioning GitHub and Jira.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

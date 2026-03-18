@@ -2,14 +2,16 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BarChart3,
+  BookOpen,
   FolderGit2,
   Home,
+  Layers,
   Settings,
   Users,
   Users2,
 } from 'lucide-react';
 
-type RoleScope = 'student' | 'lecturer';
+export type RoleScope = 'student' | 'lecturer' | 'admin';
 
 export interface MenuItem {
   title: string;
@@ -32,9 +34,25 @@ export const lecturerMenuItems: MenuItem[] = [
   { title: 'Settings', url: '/lecturer/settings', icon: Settings },
 ];
 
+export const adminMenuItems: MenuItem[] = [
+  { title: 'Overview', url: '/dashboard/admin', icon: Home },
+  { title: 'User Management', url: '/dashboard/admin/users', icon: Users },
+  {
+    title: 'Class Management',
+    url: '/dashboard/admin/classes',
+    icon: BookOpen,
+  },
+  {
+    title: 'System Integrations',
+    url: '/dashboard/admin/integrations',
+    icon: Layers,
+  },
+];
+
 const roleLabels: Record<RoleScope, string> = {
   student: 'Student Workspace',
   lecturer: 'Lecturer Portal',
+  admin: 'Admin Console',
 };
 
 export function getRoleLabel(scope: RoleScope): string {
@@ -62,7 +80,12 @@ export function buildNavigationLabel(
 ): { rootLabel: string; pageLabel: string } {
   const rootLabel = getRoleLabel(scope);
 
-  const menuItems = scope === 'student' ? studentMenuItems : lecturerMenuItems;
+  const menuItems =
+    scope === 'student'
+      ? studentMenuItems
+      : scope === 'lecturer'
+        ? lecturerMenuItems
+        : adminMenuItems;
   const matchedMenu = menuItems.find((item) =>
     isActiveMenuItem(pathname, item.url),
   );
