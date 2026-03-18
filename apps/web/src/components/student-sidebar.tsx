@@ -14,34 +14,12 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { authAPI } from '@/lib/api';
+import { isActiveMenuItem, studentMenuItems } from '@/lib/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { FolderGit2, GraduationCap, Home, Settings, Users } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-
-const studentMenuItems = [
-  {
-    title: 'Overview',
-    url: '/student',
-    icon: Home,
-  },
-  {
-    title: 'My Groups',
-    url: '/student/groups',
-    icon: Users,
-  },
-  {
-    title: 'My Projects',
-    url: '/student/projects',
-    icon: FolderGit2,
-  },
-  {
-    title: 'Settings',
-    url: '/student/settings',
-    icon: Settings,
-  },
-];
 
 export function StudentSidebar() {
   const { user, setUser, token } = useAuthStore();
@@ -88,8 +66,7 @@ export function StudentSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {studentMenuItems.map((item) => {
-                const isActive =
-                  pathname === item.url || pathname.startsWith(`${item.url}/`);
+                const isActive = isActiveMenuItem(pathname, item.url);
 
                 return (
                   <SidebarMenuItem key={item.title}>
