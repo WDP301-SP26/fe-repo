@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { authAPI, githubAPI } from '@/lib/api';
+import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
   AlertCircle,
@@ -63,6 +64,7 @@ export default function StudentProjectsPage() {
 
   const loading = isReposLoading || isAccountsLoading || !token;
   const error = reposError?.message || accountsError?.message || null;
+  const jiraConnectUrl = `${getApiBaseUrl()}/api/auth/jira?redirect_uri=${getFrontendBaseUrl()}/student/projects`;
 
   useEffect(() => {
     if (reposData?.repositories) {
@@ -140,11 +142,7 @@ export default function StudentProjectsPage() {
               variant="outline"
               className="border-blue-500/30 hover:bg-blue-500/20 w-fit shrink-0"
             >
-              <a
-                href={`${process.env.NEXT_PUBLIC_API_URL}/api/auth/jira?redirect_uri=${process.env.NEXT_PUBLIC_FRONTEND_URL}/student/projects`}
-              >
-                Connect Jira
-              </a>
+              <a href={jiraConnectUrl}>Connect Jira</a>
             </Button>
           </AlertDescription>
         </Alert>

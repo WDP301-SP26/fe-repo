@@ -2,6 +2,7 @@
 
 import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 import {
@@ -44,11 +45,13 @@ export function NavUser({
   const handleLogout = async () => {
     try {
       await authAPI.logout();
+      await signOut({ redirect: false });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       logout();
-      router.push('/signin');
+      router.replace('/signin');
+      router.refresh();
     }
   };
 

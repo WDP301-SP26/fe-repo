@@ -1,0 +1,6 @@
+# Ignore generated Next.js outputs so Nx project graph does not treat them as projects.
+
+apps/web/.next
+apps/web/.next/**
+apps/web/.next-prod
+apps/web/.next-prod/**

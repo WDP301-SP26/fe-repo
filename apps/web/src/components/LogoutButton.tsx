@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { authAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
 export function LogoutButton() {
@@ -13,6 +14,9 @@ export function LogoutButton() {
     try {
       // Call backend logout endpoint (will fail gracefully if not implemented)
       await authAPI.logout();
+
+      // Clear NextAuth session cookie used by route guards/proxy
+      await signOut({ redirect: false });
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -20,7 +24,8 @@ export function LogoutButton() {
       logout();
 
       // Redirect to login
-      router.push('/signin');
+      router.replace('/signin');
+      router.refresh();
     }
   };
 

@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { authAPI } from '@/lib/api';
+import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import { Github, Loader2 } from 'lucide-react';
 import useSWR from 'swr';
@@ -47,9 +48,7 @@ export function RequireGithubWrapper({
   }
 
   if (!isLinked) {
-    const githubConnectUrl = `${
-      process.env.NEXT_PUBLIC_API_URL
-    }/api/auth/github?redirect_uri=${process.env.NEXT_PUBLIC_FRONTEND_URL}/student/settings`;
+    const githubConnectUrl = `${getApiBaseUrl()}/api/auth/github?redirect_uri=${getFrontendBaseUrl()}/student/settings`;
 
     return (
       <div className="flex min-h-[calc(100vh-4rem)] w-full flex-col items-center justify-center bg-muted/30 p-4">

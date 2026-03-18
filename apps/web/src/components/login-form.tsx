@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
 import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
+import { getApiBaseUrl } from '@/lib/runtime-config';
 import { getDefaultRouteForRole } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
@@ -41,7 +42,7 @@ export function LoginForm({
     setServerError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const apiUrl = getApiBaseUrl();
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
