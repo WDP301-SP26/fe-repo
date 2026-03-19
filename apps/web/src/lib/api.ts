@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/stores/authStore';
 import { getApiBaseUrl } from '@/lib/runtime-config';
+import { APIError } from '@/lib/api-error';
 
 const API_URL = getApiBaseUrl();
 
@@ -39,10 +40,19 @@ export async function fetchAPI<T>(
   const response = await fetch(`${API_URL}${endpoint}`, config);
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ message: 'API request failed' }));
-    throw new Error(error.message || 'API request failed');
+    const error = await response.json().catch(() => ({}));
+    throw new APIError(response.status, {
+      message: error.message || 'API request failed',
+      code: error.code,
+      provider: error.provider,
+      retryable: error.retryable,
+      reconnectRequired: error.reconnectRequired,
+      details: error.details,
+    });
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json();
@@ -142,6 +152,8 @@ export const groupAPI = {
     fetchAPI<any>(`/api/groups/${groupId}/repos/${repoId}`, {
       method: 'DELETE',
     }),
+  getIntegrationStatus: (groupId: string) =>
+    fetchAPI<any>(`/api/groups/${groupId}/integration-status`),
   getGroupRepoCommits: (groupId: string, repoId: string) =>
     fetchAPI<any[]>(`/api/groups/${groupId}/repos/${repoId}/commits`),
 };
@@ -205,4 +217,53 @@ export const jiraAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+};
+
+export const adminSemesterAPI = {
+  getSemesters: () => fetchAPI<any[]>('/api/admin/semesters'),
+  createSemester: (data: {
+    code: string;
+    name: string;
+    start_date: string;
+    end_date: string;
+    status?: 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+  }) =>
+    fetchAPI<any>('/api/admin/semesters', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateSemester: (
+    semesterId: string,
+    data: Partial<{
+      code: string;
+      name: string;
+      start_date: string;
+      end_date: string;
+      status: 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+    }>,
+  ) =>
+    fetchAPI<any>(`/api/admin/semesters/${semesterId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  importWorkbook: (
+    semesterId: string,
+    file: File,
+    mode: 'validate' | 'import' = 'validate',
+  ) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchAPI<any>(
+      `/api/admin/semesters/${semesterId}/import?mode=${mode}`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': '',
+        },
+      },
+    );
+  },
+  getImportBatches: (semesterId: string) =>
+    fetchAPI<any[]>(`/api/admin/semesters/${semesterId}/import-batches`),
 };
