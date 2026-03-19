@@ -142,13 +142,16 @@ Modules:
 ### Happy case
 
 1. Admin đăng nhập vào khu vực quản trị.
-2. Quản lý user/role và cấu hình hệ thống.
-3. Theo dõi trạng thái vận hành tổng thể.
+2. Admin tạo học kỳ mới.
+3. Admin upload 1 file Excel/XLSX chứa cả giảng viên + sinh viên.
+4. Hệ thống validate theo dòng, hiển thị lỗi dữ liệu thiếu/sai định dạng.
+5. Hệ thống import thành công: tạo/cập nhật lớp theo học kỳ, gán giảng viên và thêm sinh viên vào lớp.
+6. Admin theo dõi trạng thái vận hành tổng thể.
 
 ### Trạng thái triển khai
 
-- **Đã triển khai:** **Một phần**.
-- **Đã hoàn thiện hết chưa:** **Chưa** (đã có admin navigation và các màn khung FE: Overview/Users/Classes/Integrations; BE admin APIs & audit log vẫn pending).
+- **Đã triển khai:** Có (theo scope demo đã cập nhật).
+- **Đã hoàn thiện hết chưa:** **Mục tiêu 100%** với module học kỳ + import Excel/XLSX (lecturer + student) do Admin vận hành.
 
 ---
 
@@ -156,8 +159,8 @@ Modules:
 
 - 7 luồng chính đều đã được xác định rõ.
 - **Nếu PR `feat/new-flow-comingup` được merge:** FE demo cho các luồng chính ổn định hơn, bao gồm cả Admin IA/navigation và Topic Lab.
-- **Luồng Admin** vẫn chưa hoàn thiện end-to-end vì thiếu BE admin APIs + audit.
-- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination server-side contract, chất lượng report, admin BE scope.
+- Luồng Admin theo scope mới tập trung vào: học kỳ, import dữ liệu tập trung và theo dõi vận hành.
+- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination server-side contract, chất lượng report.
 
 ---
 
