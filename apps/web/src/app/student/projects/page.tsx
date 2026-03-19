@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import { isAPIError } from '@/lib/api-error';
 import { authAPI, githubAPI } from '@/lib/api';
 import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
@@ -65,6 +66,7 @@ export default function StudentProjectsPage() {
   const loading = isReposLoading || isAccountsLoading || !token;
   const error = reposError?.message || accountsError?.message || null;
   const jiraConnectUrl = `${getApiBaseUrl()}/api/auth/jira?redirect_uri=${getFrontendBaseUrl()}/student/projects`;
+  const githubConnectUrl = `${getApiBaseUrl()}/api/auth/github?redirect_uri=${getFrontendBaseUrl()}/student/projects`;
 
   useEffect(() => {
     if (reposData?.repositories) {
@@ -116,8 +118,39 @@ export default function StudentProjectsPage() {
 
       {error && (
         <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="pt-6 text-destructive flex items-center gap-2">
-            <span className="font-semibold">Error:</span> {error}
+          <CardContent className="pt-6 text-destructive space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Error:</span> {error}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+              {(isAPIError(reposError) || isAPIError(accountsError)) && (
+                <>
+                  {((isAPIError(reposError) &&
+                    reposError.provider === 'GITHUB') ||
+                    (isAPIError(accountsError) &&
+                      accountsError.provider === 'GITHUB')) && (
+                    <Button asChild size="sm">
+                      <a href={githubConnectUrl}>Reconnect GitHub</a>
+                    </Button>
+                  )}
+                  {((isAPIError(reposError) &&
+                    reposError.provider === 'JIRA') ||
+                    (isAPIError(accountsError) &&
+                      accountsError.provider === 'JIRA')) && (
+                    <Button asChild size="sm">
+                      <a href={jiraConnectUrl}>Reconnect Jira</a>
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
