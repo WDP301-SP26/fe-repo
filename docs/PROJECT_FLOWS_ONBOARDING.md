@@ -7,7 +7,9 @@ Tài liệu này dùng để demo hội đồng theo 7 luồng chính của dự
 - Đã có bản fix `Routing/Auth Consistency Hardening` trên nhánh `feat/new-flow-comingup` (commit `218eca8`).
 - Đã bổ sung `Admin navigation thật` (sidebar + layout + breadcrumb) cho `/dashboard/admin`.
 - Đã tách riêng `Topic Lab` cho Team Leader tại `/student/groups/:id/topic-lab` để trải nghiệm AI ideation.
-- Trạng thái trong tài liệu này phản ánh theo hướng: nếu PR merge vào `main` thì các luồng FE demo sẽ được cập nhật tương ứng.
+- Đã chốt theo Priority Override (2026-03-19): **Luồng 3 + Luồng 4 = 100%** cho scope demo hiện tại.
+- Đã có cập nhật triển khai `T-008` (2026-03-20): semester-first import đã code-complete ở FE + BE và đã push branch/commit.
+- Trạng thái trong tài liệu này được đồng bộ theo task source of truth tại `docs/codex/codex-task-changelog.md`.
 
 ## 1. Scope
 
@@ -77,7 +79,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Chưa 100%** (một số trường hợp lỗi token/quyền cần xử lý sâu hơn).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE + BE 100% cho demo** (đã harden validate quyền repo, chuẩn hóa mã lỗi integration, và có retry/reconnect flow).
 
 ---
 
@@ -95,7 +97,7 @@ Modules:
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Chưa 100%** (cần tiếp tục harden validate và handling dữ liệu thiếu).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE + BE 100% cho demo** (đã harden validate Jira project key, chuẩn hóa mã lỗi integration, warning/fallback dữ liệu thiếu cho report).
 
 ---
 
@@ -150,17 +152,17 @@ Modules:
 
 ### Trạng thái triển khai
 
-- **Đã triển khai:** Có (theo scope demo đã cập nhật).
-- **Đã hoàn thiện hết chưa:** **Mục tiêu 100%** với module học kỳ + import Excel/XLSX (lecturer + student) do Admin vận hành.
+- **Đã triển khai:** Có (FE + BE code-complete theo cập nhật `codex_report_changelog`).
+- **Đã hoàn thiện hết chưa:** **Gần 100%** - còn chờ 1 lần live sample import trên môi trường chạy thật nếu team yêu cầu strict evidence trước khi đóng Done.
 
 ---
 
 ## 3. Kết luận nhanh để demo hội đồng
 
 - 7 luồng chính đều đã được xác định rõ.
-- **Nếu PR `feat/new-flow-comingup` được merge:** FE demo cho các luồng chính ổn định hơn, bao gồm cả Admin IA/navigation và Topic Lab.
-- Luồng Admin theo scope mới tập trung vào: học kỳ, import dữ liệu tập trung và theo dõi vận hành.
-- Các phần cần hoàn thiện tiếp: hardening tích hợp Jira/GitHub, pagination server-side contract, chất lượng report.
+- Luồng 3 (GitHub) và Luồng 4 (Jira) đã được chốt **100%** theo quyết định hiện tại của Project Lead.
+- Luồng Admin theo scope semester-first import đã code-complete; còn thiếu live evidence để đóng strict Done 100%.
+- Các phần ưu tiên tiếp theo: chạy live sample import để chốt Luồng 7, pagination server-side contract, chất lượng report.
 
 ---
 
