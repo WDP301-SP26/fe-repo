@@ -26,7 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { isAPIError } from '@/lib/api-error';
 import { githubAPI, groupAPI, jiraAPI, reportAPI, topicAPI } from '@/lib/api';
+import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
   ArrowLeft,
@@ -61,6 +63,45 @@ interface GroupRepo {
   created_at: string;
 }
 
+interface ProviderIntegrationStatus {
+  linked: boolean;
+  provider: 'GITHUB' | 'JIRA';
+  username: string | null;
+  email: string | null;
+}
+
+interface GroupIntegrationStatus {
+  user: {
+    github: ProviderIntegrationStatus;
+    jira: ProviderIntegrationStatus;
+  };
+  group: {
+    id: string;
+    jiraProjectKey: string | null;
+    linkedReposCount: number;
+    repos: Array<{
+      id: string;
+      fullName: string;
+      url: string;
+      isPrimary: boolean;
+    }>;
+    reports: {
+      canGenerateSrs: boolean;
+      canGenerateAssignments: boolean;
+      canGenerateCommits: boolean;
+    };
+  };
+  warnings: string[];
+}
+
+interface ActionableIssue {
+  title: string;
+  message: string;
+  provider?: 'GITHUB' | 'JIRA';
+  retryable?: boolean;
+  reconnectRequired?: boolean;
+}
+
 export default function GroupDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -74,14 +115,28 @@ export default function GroupDetailsPage() {
     isLoading: loadingGroup,
   } = useSWR(`/api/groups/${groupId}`, () => groupAPI.getGroupDetails(groupId));
 
+  const {
+    data: integrationStatus,
+    error: integrationStatusError,
+    mutate: mutateIntegrationStatus,
+  } = useSWR<GroupIntegrationStatus>(
+    `/api/groups/${groupId}/integration-status`,
+    () => groupAPI.getIntegrationStatus(groupId),
+  );
+
   const { data: topics, isLoading: loadingTopics } = useSWR(
     '/api/topics/available',
     () => topicAPI.getAvailableTopics(),
   );
 
   // Fetch user's GitHub repos (for the picker)
-  const { data: reposData, isLoading: loadingRepos } = useSWR(
-    '/api/github/repos',
+  const {
+    data: reposData,
+    error: reposError,
+    isLoading: loadingRepos,
+    mutate: mutateGithubRepos,
+  } = useSWR(
+    integrationStatus?.user.github.linked ? '/api/github/repos' : null,
     () => githubAPI.getRepositories(),
   );
 
@@ -111,10 +166,19 @@ export default function GroupDetailsPage() {
   const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
     null,
   );
+  const [integrationIssue, setIntegrationIssue] =
+    useState<ActionableIssue | null>(null);
   const [assignmentsPage, setAssignmentsPage] = useState(1);
 
-  const { data: jiraProjects, isLoading: loadingJiraProjects } = useSWR(
-    isJiraModalOpen ? '/api/jira/projects' : null,
+  const {
+    data: jiraProjects,
+    error: jiraProjectsError,
+    isLoading: loadingJiraProjects,
+    mutate: mutateJiraProjects,
+  } = useSWR(
+    isJiraModalOpen && integrationStatus?.user.jira.linked
+      ? '/api/jira/projects'
+      : null,
     () => jiraAPI.getProjects(),
   );
 
@@ -130,6 +194,100 @@ export default function GroupDetailsPage() {
   const isLeader =
     group?.members?.find((m: any) => m.id === user?.id)?.role_in_group ===
     'LEADER';
+
+  const buildReconnectUrl = (provider: 'GITHUB' | 'JIRA') => {
+    const apiUrl = getApiBaseUrl();
+    const frontendUrl = getFrontendBaseUrl();
+    const redirectUri = `${frontendUrl}/student/groups/${groupId}`;
+    return `${apiUrl}/api/auth/${provider.toLowerCase()}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+  };
+
+  const mapIssueFromError = (
+    error: unknown,
+    fallbackTitle: string,
+    fallbackMessage: string,
+    provider?: 'GITHUB' | 'JIRA',
+  ): ActionableIssue => {
+    if (!isAPIError(error)) {
+      return {
+        title: fallbackTitle,
+        message: fallbackMessage,
+      };
+    }
+
+    switch (error.code) {
+      case 'ACCOUNT_NOT_LINKED':
+        return {
+          title: `${provider || error.provider || 'Integration'} chưa được kết nối`,
+          message:
+            error.message ||
+            'Bạn cần liên kết tài khoản trước khi thực hiện thao tác này.',
+          provider: provider || error.provider,
+          reconnectRequired: true,
+        };
+      case 'TOKEN_EXPIRED':
+        return {
+          title: `${provider || error.provider || 'Integration'} đã hết hạn`,
+          message: error.message || 'Phiên liên kết đã hết hạn. Hãy reconnect.',
+          provider: provider || error.provider,
+          reconnectRequired: true,
+        };
+      case 'INSUFFICIENT_SCOPE':
+        return {
+          title: `${provider || error.provider || 'Integration'} thiếu quyền`,
+          message: error.message || 'Tài khoản hiện tại thiếu scope cần thiết.',
+          provider: provider || error.provider,
+          reconnectRequired: true,
+        };
+      case 'RATE_LIMITED':
+        return {
+          title: `${provider || error.provider || 'Integration'} đang bị rate limit`,
+          message:
+            error.message || 'Nhà cung cấp đang giới hạn request. Hãy thử lại.',
+          provider: provider || error.provider,
+          retryable: true,
+        };
+      case 'NOT_FOUND':
+        return {
+          title: 'Không tìm thấy tài nguyên cần liên kết',
+          message: error.message || fallbackMessage,
+          provider: provider || error.provider,
+        };
+      default:
+        return {
+          title: fallbackTitle,
+          message: error.message || fallbackMessage,
+          provider: provider || error.provider,
+          retryable: error.retryable,
+          reconnectRequired: error.reconnectRequired,
+        };
+    }
+  };
+
+  const showIssue = (
+    error: unknown,
+    fallbackTitle: string,
+    fallbackMessage: string,
+    provider?: 'GITHUB' | 'JIRA',
+  ) => {
+    setIntegrationIssue(
+      mapIssueFromError(error, fallbackTitle, fallbackMessage, provider),
+    );
+  };
+
+  const retryIntegrationFetches = async () => {
+    setIntegrationIssue(null);
+    await Promise.allSettled([
+      mutateIntegrationStatus(),
+      mutate(`/api/groups/${groupId}`),
+      mutate(`/api/groups/${groupId}/repos`),
+      mutateGithubRepos(),
+      mutateJiraProjects(),
+    ]);
+  };
+
+  const githubLinked = !!integrationStatus?.user.github.linked;
+  const jiraLinked = !!integrationStatus?.user.jira.linked;
 
   const handleProvisionWorkspace = async () => {
     if (!selectedTopic) {
@@ -160,6 +318,7 @@ export default function GroupDetailsPage() {
 
     setIsLinkingRepo(true);
     try {
+      setIntegrationIssue(null);
       await groupAPI.addGroupRepo(groupId, {
         repo_url: selectedRepo.html_url,
         repo_name: selectedRepo.name,
@@ -170,8 +329,15 @@ export default function GroupDetailsPage() {
       });
       toast.success('Repository linked successfully!');
       mutate(`/api/groups/${groupId}/repos`);
+      mutateIntegrationStatus();
       setSelectedRepoUrl('');
     } catch (err: any) {
+      showIssue(
+        err,
+        'Không thể liên kết repository',
+        'Liên kết repository thất bại.',
+        'GITHUB',
+      );
       toast.error('Failed to link repository', {
         description: err.message,
       });
@@ -188,6 +354,7 @@ export default function GroupDetailsPage() {
     }
     setIsCreatingRepo(true);
     try {
+      setIntegrationIssue(null);
       const newRepo = await githubAPI.createRepo(
         newRepoName.trim(),
         newRepoDesc.trim(),
@@ -200,11 +367,18 @@ export default function GroupDetailsPage() {
       });
       mutate(`/api/groups/${groupId}/repos`);
       mutate('/api/github/repos'); // Refresh repo list
+      mutateIntegrationStatus();
       setNewRepoName('');
       setNewRepoDesc('');
       setShowCreateForm(false);
       toast.success(`Repository "${newRepo.name}" created and linked!`);
     } catch (err: any) {
+      showIssue(
+        err,
+        'Không thể tạo hoặc liên kết repository',
+        'Tạo repository trên GitHub thất bại.',
+        'GITHUB',
+      );
       toast.error('Failed to create repo', {
         description: err.message,
       });
@@ -217,13 +391,21 @@ export default function GroupDetailsPage() {
     if (!selectedJiraProjectKey) return;
     setIsLinkingJira(true);
     try {
+      setIntegrationIssue(null);
       await groupAPI.updateGroup(groupId, {
         jira_project_key: selectedJiraProjectKey,
       });
       toast.success('Jira project linked successfully!');
       mutate(`/api/groups/${groupId}`);
+      mutateIntegrationStatus();
       setIsJiraModalOpen(false);
     } catch (err: any) {
+      showIssue(
+        err,
+        'Không thể liên kết Jira project',
+        'Liên kết Jira project thất bại.',
+        'JIRA',
+      );
       toast.error('Failed to link Jira project', {
         description: err.message,
       });
@@ -239,6 +421,7 @@ export default function GroupDetailsPage() {
     setReportType(type);
     setAssignmentsPage(1);
     try {
+      setIntegrationIssue(null);
       if (type === 'srs') {
         const res = await reportAPI.generateSrs(groupId);
         setReportResult(res.markdown);
@@ -251,6 +434,12 @@ export default function GroupDetailsPage() {
       }
       setReportGeneratedAt(new Date().toISOString());
     } catch (err: any) {
+      showIssue(
+        err,
+        'Không thể tạo report',
+        'Tạo report thất bại. Kiểm tra lại trạng thái Jira/GitHub.',
+        isAPIError(err) ? err.provider : undefined,
+      );
       setReportError(
         err.message ||
           'Error generating report. Ensure Jira/GitHub is fully linked.',
@@ -274,7 +463,7 @@ export default function GroupDetailsPage() {
   }, [assignments, safeAssignmentsPage]);
 
   const reportWarnings = useMemo(() => {
-    const warnings: string[] = [];
+    const warnings = [...(integrationStatus?.warnings || [])];
     if (!group?.jira_project_key) {
       warnings.push(
         'Jira project is not linked. Assignment data may be incomplete.',
@@ -285,8 +474,16 @@ export default function GroupDetailsPage() {
         'No GitHub repository is linked. Commit-based reports can be empty.',
       );
     }
-    return warnings;
-  }, [group?.jira_project_key, groupRepos]);
+    if (Array.isArray(reportResult?.warnings)) {
+      warnings.push(...reportResult.warnings);
+    }
+    return Array.from(new Set(warnings));
+  }, [
+    group?.jira_project_key,
+    groupRepos,
+    integrationStatus?.warnings,
+    reportResult?.warnings,
+  ]);
 
   // Remove a linked repo
   const handleRemoveRepo = async () => {
@@ -295,7 +492,14 @@ export default function GroupDetailsPage() {
       await groupAPI.removeGroupRepo(groupId, repoToRemove);
       toast.success('Repository removed from group');
       mutate(`/api/groups/${groupId}/repos`);
+      mutateIntegrationStatus();
     } catch (err: any) {
+      showIssue(
+        err,
+        'Không thể gỡ repository',
+        'Gỡ repository khỏi group thất bại.',
+        'GITHUB',
+      );
       toast.error('Failed to remove repository', {
         description: err.message,
       });
@@ -389,6 +593,128 @@ export default function GroupDetailsPage() {
         </div>
       </div>
 
+      {(integrationIssue ||
+        integrationStatusError ||
+        reposError ||
+        jiraProjectsError) && (
+        <Alert className="border-amber-500/40 bg-amber-500/10">
+          <Info className="h-4 w-4" />
+          <AlertTitle>
+            {integrationIssue?.title ||
+              'Có vấn đề với trạng thái tích hợp GitHub/Jira'}
+          </AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>
+              {integrationIssue?.message ||
+                (integrationStatusError as Error | undefined)?.message ||
+                (reposError as Error | undefined)?.message ||
+                (jiraProjectsError as Error | undefined)?.message ||
+                'Không thể tải dữ liệu tích hợp.'}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={retryIntegrationFetches}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+              {(integrationIssue?.reconnectRequired ||
+                isAPIError(reposError) ||
+                isAPIError(jiraProjectsError)) && (
+                <>
+                  {(integrationIssue?.provider === 'GITHUB' ||
+                    isAPIError(reposError)) && (
+                    <Button asChild size="sm">
+                      <a href={buildReconnectUrl('GITHUB')}>Reconnect GitHub</a>
+                    </Button>
+                  )}
+                  {(integrationIssue?.provider === 'JIRA' ||
+                    isAPIError(jiraProjectsError)) && (
+                    <Button asChild size="sm">
+                      <a href={buildReconnectUrl('JIRA')}>Reconnect Jira</a>
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg">Integration Status</CardTitle>
+          <CardDescription>
+            Trạng thái account hiện tại và mức sẵn sàng của group cho Luồng 3/4.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">GitHub account</span>
+              <span
+                className={githubLinked ? 'text-green-600' : 'text-amber-600'}
+              >
+                {githubLinked ? 'Linked' : 'Not linked'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {integrationStatus?.user.github.username ||
+                integrationStatus?.user.github.email ||
+                'Connect GitHub to create/link repositories.'}
+            </p>
+            {!githubLinked && (
+              <Button asChild size="sm" className="w-full">
+                <a href={buildReconnectUrl('GITHUB')}>Connect GitHub</a>
+              </Button>
+            )}
+          </div>
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Jira account</span>
+              <span
+                className={jiraLinked ? 'text-green-600' : 'text-amber-600'}
+              >
+                {jiraLinked ? 'Linked' : 'Not linked'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {integrationStatus?.user.jira.username ||
+                integrationStatus?.user.jira.email ||
+                'Connect Jira to fetch project keys and task data.'}
+            </p>
+            {!jiraLinked && (
+              <Button asChild size="sm" className="w-full">
+                <a href={buildReconnectUrl('JIRA')}>Connect Jira</a>
+              </Button>
+            )}
+          </div>
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Group repos</span>
+              <span>{integrationStatus?.group.linkedReposCount || 0}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Commit analytics chỉ sẵn sàng khi group đã có ít nhất 1 repo.
+            </p>
+          </div>
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Jira project key</span>
+              <span>
+                {integrationStatus?.group.jiraProjectKey || 'Missing'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Assignment/SRS phụ thuộc Jira project đã link vào group.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border-primary/20 shadow-sm">
           <CardHeader>
@@ -436,6 +762,7 @@ export default function GroupDetailsPage() {
                         variant="secondary"
                         size="sm"
                         className="absolute inset-x-2 bottom-2 max-h-8 opacity-0 group-hover/jira:opacity-100 transition-opacity text-[10px]"
+                        disabled={!jiraLinked}
                         onClick={() => setIsJiraModalOpen(true)}
                       >
                         {group.jira_project_key ? 'Change' : 'Link Jira'}
@@ -568,7 +895,7 @@ export default function GroupDetailsPage() {
                     className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     value={selectedRepoUrl}
                     onChange={(e) => setSelectedRepoUrl(e.target.value)}
-                    disabled={isLinkingRepo}
+                    disabled={isLinkingRepo || !githubLinked}
                   >
                     <option value="">-- Select a Repository --</option>
                     {reposForPicker.map((repo: any) => (
@@ -583,7 +910,9 @@ export default function GroupDetailsPage() {
                   </select>
                   <Button
                     onClick={handleLinkRepo}
-                    disabled={!selectedRepoUrl || isLinkingRepo}
+                    disabled={
+                      !selectedRepoUrl || isLinkingRepo || !githubLinked
+                    }
                   >
                     {isLinkingRepo ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -596,7 +925,7 @@ export default function GroupDetailsPage() {
                 <p className="text-sm text-muted-foreground">
                   No repos found.{' '}
                   <a
-                    href="/student/settings"
+                    href={buildReconnectUrl('GITHUB')}
                     className="text-primary underline"
                   >
                     Connect GitHub
@@ -615,6 +944,7 @@ export default function GroupDetailsPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    disabled={!githubLinked}
                     onClick={() => setShowCreateForm(true)}
                   >
                     <Plus className="mr-1 h-3 w-3" /> New Repo
@@ -633,7 +963,7 @@ export default function GroupDetailsPage() {
                       placeholder="e.g. group2-frontend"
                       value={newRepoName}
                       onChange={(e) => setNewRepoName(e.target.value)}
-                      disabled={isCreatingRepo}
+                      disabled={isCreatingRepo || !githubLinked}
                     />
                   </div>
                   <div>
@@ -644,14 +974,16 @@ export default function GroupDetailsPage() {
                       placeholder="e.g. Frontend app for hospitality service"
                       value={newRepoDesc}
                       onChange={(e) => setNewRepoDesc(e.target.value)}
-                      disabled={isCreatingRepo}
+                      disabled={isCreatingRepo || !githubLinked}
                     />
                   </div>
                   <div className="flex gap-2">
                     <Button
                       className="flex-1 bg-[#24292f] hover:bg-[#1b1f23] text-white"
                       onClick={handleCreateAndLinkRepo}
-                      disabled={isCreatingRepo || !newRepoName.trim()}
+                      disabled={
+                        isCreatingRepo || !newRepoName.trim() || !githubLinked
+                      }
                     >
                       {isCreatingRepo ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -677,7 +1009,7 @@ export default function GroupDetailsPage() {
         </Card>
       )}
 
-      {isLeader && group.jira_project_key && (
+      {isLeader && group.topic && (
         <Card className="shadow-sm border-primary/20 bg-primary/2">
           <CardHeader className="pb-4 border-b bg-muted/5 rounded-t-lg">
             <CardTitle className="text-xl flex items-center gap-2">
@@ -692,14 +1024,20 @@ export default function GroupDetailsPage() {
             <div className="flex flex-wrap gap-4 mb-6">
               <Button
                 onClick={() => generateReport('srs')}
-                disabled={generatingReport}
+                disabled={
+                  generatingReport ||
+                  !integrationStatus?.group.reports.canGenerateSrs
+                }
                 className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
               >
                 <FileText className="w-4 h-4" /> Generate AI SRS Document
               </Button>
               <Button
                 onClick={() => generateReport('assignments')}
-                disabled={generatingReport}
+                disabled={
+                  generatingReport ||
+                  !integrationStatus?.group.reports.canGenerateAssignments
+                }
                 variant="outline"
                 className="flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
               >
@@ -707,7 +1045,10 @@ export default function GroupDetailsPage() {
               </Button>
               <Button
                 onClick={() => generateReport('commits')}
-                disabled={generatingReport}
+                disabled={
+                  generatingReport ||
+                  !integrationStatus?.group.reports.canGenerateCommits
+                }
                 variant="outline"
                 className="flex items-center gap-2 border-green-600/50 text-green-700 hover:bg-green-600/10"
               >
@@ -911,7 +1252,17 @@ export default function GroupDetailsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {loadingJiraProjects ? (
+          {!jiraLinked ? (
+            <div className="space-y-3 py-4">
+              <p className="text-sm text-muted-foreground">
+                You must connect Jira before selecting a project key for this
+                group.
+              </p>
+              <Button asChild className="w-full">
+                <a href={buildReconnectUrl('JIRA')}>Connect Jira</a>
+              </Button>
+            </div>
+          ) : loadingJiraProjects ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               <Loader2 className="mx-auto h-6 w-6 animate-spin mb-2" />
               Loading your Jira projects...
