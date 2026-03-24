@@ -24,6 +24,7 @@ Modules:
 - Group/Project
 - Auth & Account Linking
 - Reports
+- Semester Week Governance (10-week timeline + checkpoints)
 
 ---
 
@@ -111,11 +112,14 @@ Modules:
 2. Xem danh sách lớp và nhóm theo lớp.
 3. Drill-down vào chi tiết group.
 4. Theo dõi integrations, tiến độ và commit gần đây.
+5. Theo dõi checkpoint theo tuần học kỳ:
+   - Tuần 1: còn sinh viên nào chưa có nhóm không.
+   - Tuần 2: còn nhóm nào chưa chốt đề tài không.
 
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE 100% cho demo** (đã có search/filter/pagination theo class + integration).
+- **Đã hoàn thiện hết chưa:** **Partially done** - đã có nền tảng dashboard; checkpoint tuần và summary compliance đang được ưu tiên triển khai tiếp theo.
 
 ---
 
@@ -149,11 +153,12 @@ Modules:
 4. Hệ thống validate theo dòng, hiển thị lỗi dữ liệu thiếu/sai định dạng.
 5. Hệ thống import thành công: tạo/cập nhật lớp theo học kỳ, gán giảng viên và thêm sinh viên vào lớp.
 6. Admin theo dõi trạng thái vận hành tổng thể.
+7. (Ẩn, phục vụ demo) Admin có thể set tuần hiện tại để mô phỏng checkpoint tuần 1/tuần 2.
 
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có (FE + BE code-complete theo cập nhật `codex_report_changelog`).
-- **Đã hoàn thiện hết chưa:** **Gần 100%** - còn chờ 1 lần live sample import trên môi trường chạy thật nếu team yêu cầu strict evidence trước khi đóng Done.
+- **Đã hoàn thiện hết chưa:** **Gần 100%** cho semester-first import; còn chờ 1 lần live sample import và tính năng ẩn set tuần phục vụ demo.
 
 ---
 
@@ -163,6 +168,7 @@ Modules:
 - Luồng 3 (GitHub) và Luồng 4 (Jira) đã được chốt **100%** theo quyết định hiện tại của Project Lead.
 - Luồng Admin theo scope semester-first import đã code-complete; còn thiếu live evidence để đóng strict Done 100%.
 - Các phần ưu tiên tiếp theo: chạy live sample import để chốt Luồng 7, pagination server-side contract, chất lượng report.
+- Các phần ưu tiên tiếp theo: triển khai tuần học kỳ (10 tuần), rule checkpoint tuần 1/2, hidden demo set-week, rồi chạy live evidence.
 
 ---
 

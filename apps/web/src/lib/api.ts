@@ -1,6 +1,6 @@
-import { useAuthStore } from '@/stores/authStore';
-import { getApiBaseUrl } from '@/lib/runtime-config';
 import { APIError } from '@/lib/api-error';
+import { getApiBaseUrl } from '@/lib/runtime-config';
+import { useAuthStore } from '@/stores/authStore';
 
 const API_URL = getApiBaseUrl();
 
@@ -217,6 +217,110 @@ export const jiraAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+};
+
+export interface SemesterInfo {
+  id: string;
+  code: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  status: 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+  current_week: number;
+}
+
+export interface CurrentWeekResponse {
+  semester: SemesterInfo;
+  can_override_week: boolean;
+}
+
+export interface LecturerComplianceSummary {
+  semester: SemesterInfo | null;
+  checkpoints: {
+    week1_active: boolean;
+    week2_active: boolean;
+  };
+  summary: {
+    classes_total: number;
+    classes_passing_week1: number;
+    classes_passing_week2: number;
+    students_without_group_total: number;
+    groups_without_topic_total: number;
+  };
+  classes: Array<{
+    class_id: string;
+    class_code: string;
+    class_name: string;
+    semester: string;
+    total_students: number;
+    total_groups: number;
+    students_without_group_count: number;
+    groups_without_topic_count: number;
+    week1_status: 'PASS' | 'FAIL';
+    week2_status: 'PASS' | 'FAIL';
+    groups: Array<{
+      group_id: string;
+      group_name: string;
+      member_count: number;
+      max_members: number;
+      topic_name: string | null;
+      has_finalized_topic: boolean;
+      week1_status: 'PASS' | 'FAIL';
+      week2_status: 'PASS' | 'FAIL';
+    }>;
+  }>;
+}
+
+export interface StudentWeeklyWarnings {
+  semester: SemesterInfo | null;
+  warnings: Array<{
+    code: string;
+    severity: 'warning';
+    class_id: string;
+    class_code: string;
+    class_name: string;
+    group_id?: string;
+    group_name?: string;
+    message: string;
+  }>;
+  classes: Array<{
+    class_id: string;
+    class_code: string;
+    class_name: string;
+    has_group: boolean;
+    week1_status: 'PASS' | 'FAIL';
+    groups: Array<{
+      group_id: string;
+      group_name: string;
+      topic_name: string | null;
+      has_finalized_topic: boolean;
+      week2_status: 'PASS' | 'FAIL';
+    }>;
+  }>;
+}
+
+export const semesterAPI = {
+  getSemesters: () => fetchAPI<SemesterInfo[]>('/api/semesters'),
+  getCurrentSemester: () =>
+    fetchAPI<SemesterInfo | null>('/api/semesters/current'),
+  getCurrentWeek: () =>
+    fetchAPI<CurrentWeekResponse | null>('/api/semesters/current-week'),
+  getLecturerComplianceSummary: (classId?: string) =>
+    fetchAPI<LecturerComplianceSummary>(
+      `/api/semesters/current/compliance/lecturer-summary${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`,
+    ),
+  getStudentWarnings: () =>
+    fetchAPI<StudentWeeklyWarnings>(
+      '/api/semesters/current/compliance/student-warning',
+    ),
+  setCurrentWeek: (semesterId: string, current_week: number) =>
+    fetchAPI<{ semester: SemesterInfo; audit_recorded: boolean }>(
+      `/api/semesters/${semesterId}/current-week`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ current_week }),
+      },
+    ),
 };
 
 export const adminSemesterAPI = {

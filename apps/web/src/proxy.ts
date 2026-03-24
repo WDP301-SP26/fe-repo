@@ -1,11 +1,11 @@
-import NextAuth from 'next-auth';
-import { authConfig } from './auth.config';
 import {
   getDefaultRouteForRole,
   isAuthRoute,
   isProtectedRoute,
   normalizeRole,
 } from '@/lib/routes';
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
 
 const { auth } = NextAuth(authConfig);
 
@@ -24,7 +24,16 @@ export const proxy = auth((req) => {
   }
 
   if (isAuthenticated) {
+    if (!userRole) {
+      return Response.redirect(new URL('/signin', nextUrl));
+    }
+
     const defaultRoute = getDefaultRouteForRole(userRole);
+
+    // Prevent redirect loops when the computed destination equals the current path.
+    if (defaultRoute === nextUrl.pathname) {
+      return;
+    }
 
     if (isCurrentAuthRoute) {
       return Response.redirect(new URL(defaultRoute, nextUrl));
