@@ -299,6 +299,67 @@ export interface StudentWeeklyWarnings {
   }>;
 }
 
+export interface ReviewMilestoneInfo {
+  code: 'REVIEW_1' | 'PROGRESS_TRACKING' | 'REVIEW_2' | 'REVIEW_3';
+  label: string;
+  week_start: number;
+  week_end: number;
+}
+
+export interface GroupReviewSummary {
+  group_id: string;
+  group_name: string;
+  topic_name: string | null;
+  review_status: 'PENDING' | 'REVIEWED';
+  scores: {
+    task_progress_score: number | null;
+    commit_contribution_score: number | null;
+    review_milestone_score: number | null;
+    total_score: number | null;
+  };
+  lecturer_note: string | null;
+  snapshot: {
+    task_total: number;
+    task_done: number;
+    commit_total: number | null;
+    commit_contributors: number | null;
+    repository: string | null;
+    captured_at: string | null;
+  };
+  warnings: string[];
+  milestone: ReviewMilestoneInfo | null;
+}
+
+export interface LecturerReviewSummary {
+  semester: SemesterInfo | null;
+  milestone: ReviewMilestoneInfo | null;
+  summary: {
+    classes_total: number;
+    groups_total: number;
+    reviewed_groups: number;
+    groups_missing_task_evidence: number;
+    groups_missing_commit_evidence: number;
+  };
+  classes: Array<{
+    class_id: string;
+    class_code: string;
+    class_name: string;
+    groups: GroupReviewSummary[];
+  }>;
+}
+
+export interface StudentReviewStatus {
+  semester: SemesterInfo | null;
+  milestone: ReviewMilestoneInfo | null;
+  groups: Array<
+    {
+      class_id: string;
+      class_code: string;
+      class_name: string;
+    } & GroupReviewSummary
+  >;
+}
+
 export const semesterAPI = {
   getSemesters: () => fetchAPI<SemesterInfo[]>('/api/semesters'),
   getCurrentSemester: () =>
@@ -313,6 +374,36 @@ export const semesterAPI = {
     fetchAPI<StudentWeeklyWarnings>(
       '/api/semesters/current/compliance/student-warning',
     ),
+  getCurrentReviewMilestone: () =>
+    fetchAPI<{
+      semester: SemesterInfo | null;
+      milestone: ReviewMilestoneInfo | null;
+    }>('/api/semesters/current/review-milestone'),
+  getLecturerReviewSummary: (classId?: string) =>
+    fetchAPI<LecturerReviewSummary>(
+      `/api/semesters/current/reviews/lecturer-summary${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`,
+    ),
+  getStudentReviewStatus: () =>
+    fetchAPI<StudentReviewStatus>(
+      '/api/semesters/current/reviews/student-status',
+    ),
+  upsertCurrentGroupReview: (
+    groupId: string,
+    data: {
+      task_progress_score?: number;
+      commit_contribution_score?: number;
+      review_milestone_score?: number;
+      lecturer_note?: string;
+    },
+  ) =>
+    fetchAPI<{
+      semester: SemesterInfo;
+      milestone: ReviewMilestoneInfo | null;
+      group: GroupReviewSummary;
+    }>(`/api/semesters/groups/${groupId}/current-review`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   setCurrentWeek: (semesterId: string, current_week: number) =>
     fetchAPI<{ semester: SemesterInfo; audit_recorded: boolean }>(
       `/api/semesters/${semesterId}/current-week`,

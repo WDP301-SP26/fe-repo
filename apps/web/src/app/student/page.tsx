@@ -20,6 +20,10 @@ export default function StudentDashboardPage() {
     user ? '/api/semesters/current/compliance/student-warning' : null,
     () => semesterAPI.getStudentWarnings(),
   );
+  const { data: reviewStatus } = useSWR(
+    user ? '/api/semesters/current/reviews/student-status' : null,
+    () => semesterAPI.getStudentReviewStatus(),
+  );
 
   // Filter out classes the student is already in
   const myClassIds = new Set(classes?.map((c: any) => c.id) || []);
@@ -110,6 +114,76 @@ export default function StudentDashboardPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Review Milestone</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {reviewStatus?.milestone ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{reviewStatus.milestone.label}</Badge>
+                <span className="text-sm text-muted-foreground">
+                  Week {reviewStatus.milestone.week_start}-
+                  {reviewStatus.milestone.week_end}
+                </span>
+              </div>
+              {reviewStatus.groups.length ? (
+                <div className="space-y-3">
+                  {reviewStatus.groups.map((group) => (
+                    <div
+                      key={`${group.class_id}-${group.group_id}`}
+                      className="rounded-md border p-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">
+                          {group.class_code} - {group.group_name}
+                        </span>
+                        <Badge
+                          variant={
+                            group.review_status === 'REVIEWED'
+                              ? 'default'
+                              : 'secondary'
+                          }
+                        >
+                          {group.review_status}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        {group.topic_name || 'Topic not finalized yet'}
+                      </div>
+                      {group.warnings.length ? (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {group.warnings.map((warning) => (
+                            <Badge key={warning} variant="destructive">
+                              {warning}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-sm text-emerald-700">
+                          Review evidence is available for this milestone.
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No joined group is mapped into the current review milestone
+                  yet.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No grouped review milestone is active yet. Review checkpoints
+              begin from week 3.
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="shadow-sm border-l-4 border-l-primary transition-all hover:shadow-md">
