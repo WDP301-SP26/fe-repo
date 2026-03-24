@@ -9,9 +9,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { classAPI } from '@/lib/api';
+import { classAPI, semesterAPI } from '@/lib/api';
 import { Loader2, PlusCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
@@ -19,12 +19,41 @@ export function CreateClassModal() {
   const { mutate } = useSWRConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSemester, setIsLoadingSemester] = useState(true);
   const [formData, setFormData] = useState({
     code: '',
     name: '',
-    semester: 'SP26',
+    semester: '',
     student_emails: '',
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateCurrentSemester = async () => {
+      try {
+        const currentSemester = await semesterAPI.getCurrentSemester();
+        if (isMounted) {
+          setFormData((prev) => ({
+            ...prev,
+            semester: currentSemester?.code || prev.semester,
+          }));
+        }
+      } catch {
+        // Keep manual input fallback.
+      } finally {
+        if (isMounted) {
+          setIsLoadingSemester(false);
+        }
+      }
+    };
+
+    hydrateCurrentSemester();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +77,12 @@ export function CreateClassModal() {
       });
       mutate('/api/classes');
       setIsOpen(false);
-      setFormData({ code: '', name: '', semester: 'SP26', student_emails: '' });
+      setFormData((prev) => ({
+        code: '',
+        name: '',
+        semester: prev.semester,
+        student_emails: '',
+      }));
     } catch (error: any) {
       toast.error('Error creating class', {
         description: error.message,
@@ -102,6 +136,9 @@ export function CreateClassModal() {
               id="semester"
               required
               value={formData.semester}
+              placeholder={
+                isLoadingSemester ? 'Loading current semester...' : 'e.g. SP26'
+              }
               onChange={(e) =>
                 setFormData({ ...formData, semester: e.target.value })
               }

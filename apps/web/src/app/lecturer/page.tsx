@@ -1,6 +1,7 @@
 'use client';
 
 import { LogoutButton } from '@/components/LogoutButton';
+import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -9,13 +10,23 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useClasses } from '@/hooks/use-api';
+import { semesterAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { CreateClassModal } from './components/CreateClassModal';
 
 export default function LecturerDashboardPage() {
   const user = useAuthStore((state) => state.user);
   const { data: classes, error, isLoading } = useClasses();
+  const { data: complianceSummary, isLoading: governanceLoading } = useSWR(
+    user ? '/api/semesters/current/compliance/lecturer-summary' : null,
+    () => semesterAPI.getLecturerComplianceSummary(),
+  );
+  const currentSemester = complianceSummary?.semester;
+  const classComplianceMap = new Map(
+    complianceSummary?.classes?.map((item) => [item.class_id, item]) ?? [],
+  );
 
   return (
     <div className="space-y-6">
@@ -33,17 +44,62 @@ export default function LecturerDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Total Classes</CardTitle>
-            <CardDescription>Classes you're teaching</CardDescription>
+            <CardTitle>Current Week</CardTitle>
+            <CardDescription>Semester governance checkpoint</CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {governanceLoading ? (
               <div className="text-4xl font-bold text-muted-foreground">
                 ...
               </div>
             ) : (
-              <div className="text-4xl font-bold">{classes?.length || 0}</div>
+              <>
+                <div className="text-4xl font-bold">
+                  {currentSemester?.current_week ?? '-'}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {currentSemester
+                    ? `${currentSemester.code} - ${currentSemester.name}`
+                    : 'No current semester configured'}
+                </p>
+              </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Week 1 Gate</CardTitle>
+            <CardDescription>Students assigned into groups</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold">
+              {complianceSummary
+                ? `${complianceSummary.summary.classes_passing_week1}/${complianceSummary.summary.classes_total}`
+                : '...'}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {complianceSummary?.summary.students_without_group_total ?? 0}{' '}
+              students still without a group
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Week 2 Gate</CardTitle>
+            <CardDescription>Groups with finalized topics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold">
+              {complianceSummary
+                ? `${complianceSummary.summary.classes_passing_week2}/${complianceSummary.summary.classes_total}`
+                : '...'}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {complianceSummary?.summary.groups_without_topic_total ?? 0}{' '}
+              groups still without a finalized topic
+            </p>
           </CardContent>
         </Card>
 
@@ -77,30 +133,72 @@ export default function LecturerDashboardPage() {
                       name: string;
                       semester: string;
                       enrollment_key: string;
-                    }) => (
-                      <div
-                        key={c.id}
-                        className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                      >
-                        <div>
-                          <div className="font-bold text-lg">
-                            {c.code} - {c.name}
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            Semester: {c.semester} | Enrollment Key:{' '}
-                            <span className="font-mono font-semibold bg-accent px-2 py-0.5 rounded select-all cursor-text">
-                              {c.enrollment_key}
-                            </span>
-                          </div>
-                        </div>
-                        <Link
-                          href={`/lecturer/classes/${c.id}`}
-                          className="text-primary text-sm font-medium hover:underline p-2"
+                    }) => {
+                      const classCompliance = classComplianceMap.get(c.id);
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
                         >
-                          View 7 Groups &rarr;
-                        </Link>
-                      </div>
-                    ),
+                          <div>
+                            <div className="font-bold text-lg">
+                              {c.code} - {c.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Semester: {c.semester} | Enrollment Key:{' '}
+                              <span className="font-mono font-semibold bg-accent px-2 py-0.5 rounded select-all cursor-text">
+                                {c.enrollment_key}
+                              </span>
+                            </div>
+                            {classCompliance && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Badge
+                                  variant={
+                                    classCompliance.week1_status === 'PASS'
+                                      ? 'default'
+                                      : 'destructive'
+                                  }
+                                >
+                                  Week 1 {classCompliance.week1_status}
+                                </Badge>
+                                <Badge
+                                  variant={
+                                    classCompliance.week2_status === 'PASS'
+                                      ? 'default'
+                                      : 'destructive'
+                                  }
+                                >
+                                  Week 2 {classCompliance.week2_status}
+                                </Badge>
+                                {classCompliance.students_without_group_count >
+                                  0 && (
+                                  <Badge variant="secondary">
+                                    {
+                                      classCompliance.students_without_group_count
+                                    }{' '}
+                                    student(s) missing group
+                                  </Badge>
+                                )}
+                                {classCompliance.groups_without_topic_count >
+                                  0 && (
+                                  <Badge variant="secondary">
+                                    {classCompliance.groups_without_topic_count}{' '}
+                                    group(s) missing topic
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <Link
+                            href={`/lecturer/classes/${c.id}`}
+                            className="text-primary text-sm font-medium hover:underline p-2"
+                          >
+                            View 7 Groups &rarr;
+                          </Link>
+                        </div>
+                      );
+                    },
                   )}
                 </div>
               )}

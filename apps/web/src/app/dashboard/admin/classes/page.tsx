@@ -1,5 +1,6 @@
 'use client';
 
+import { DemoWeekOverrideCard } from '@/components/demo-week-override-card';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { adminSemesterAPI } from '@/lib/api';
+import { adminSemesterAPI, semesterAPI } from '@/lib/api';
 import { Loader2, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -49,6 +50,10 @@ export default function AdminClassesPage() {
     mutate: mutateSemesters,
   } = useSWR<Semester[]>('/api/admin/semesters', () =>
     adminSemesterAPI.getSemesters(),
+  );
+  const { data: currentSemester, mutate: mutateCurrentSemester } = useSWR(
+    '/api/semesters/current',
+    () => semesterAPI.getCurrentSemester(),
   );
 
   const { data: batches, mutate: mutateBatches } = useSWR<any[]>(
@@ -155,6 +160,13 @@ export default function AdminClassesPage() {
           file that contains both lecturer and student rows.
         </p>
       </div>
+
+      <DemoWeekOverrideCard
+        semester={currentSemester ?? null}
+        onUpdated={async () => {
+          await Promise.all([mutateCurrentSemester(), mutateSemesters()]);
+        }}
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>

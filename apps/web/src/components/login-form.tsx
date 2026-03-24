@@ -5,16 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PasswordInput } from '@/components/ui/password-input';
-import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
-import { getApiBaseUrl } from '@/lib/runtime-config';
 import { getDefaultRouteForRole } from '@/lib/routes';
+import { getApiBaseUrl } from '@/lib/runtime-config';
+import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { signIn } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 export function LoginForm({
@@ -24,6 +24,20 @@ export function LoginForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    // Localhost often keeps stale local/session state when switching between envs.
+    if (window.location.hostname === 'localhost') {
+      useAuthStore.getState().logout();
+      signOut({ redirect: false }).catch(() => {
+        // Ignore cleanup errors; login can still proceed.
+      });
+    }
+  }, []);
 
   const {
     register,
