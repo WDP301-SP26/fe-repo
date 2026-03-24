@@ -1,6 +1,7 @@
 'use client';
 
 import { LogoutButton } from '@/components/LogoutButton';
+import { LecturerReviewQuickPanel } from '@/components/lecturer-review-quick-panel';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -22,6 +23,14 @@ export default function LecturerDashboardPage() {
   const { data: complianceSummary, isLoading: governanceLoading } = useSWR(
     user ? '/api/semesters/current/compliance/lecturer-summary' : null,
     () => semesterAPI.getLecturerComplianceSummary(),
+  );
+  const {
+    data: reviewSummary,
+    isLoading: reviewLoading,
+    mutate: mutateReviewSummary,
+  } = useSWR(
+    user ? '/api/semesters/current/reviews/lecturer-summary' : null,
+    () => semesterAPI.getLecturerReviewSummary(),
   );
   const currentSemester = complianceSummary?.semester;
   const classComplianceMap = new Map(
@@ -69,6 +78,37 @@ export default function LecturerDashboardPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Current Review Milestone</CardTitle>
+            <CardDescription>Grouped week review window</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {reviewLoading ? (
+              <div className="text-2xl font-bold text-muted-foreground">
+                ...
+              </div>
+            ) : reviewSummary?.milestone ? (
+              <>
+                <div className="text-2xl font-bold">
+                  {reviewSummary.milestone.label}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Week {reviewSummary.milestone.week_start}-
+                  {reviewSummary.milestone.week_end}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">No active review</div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Grouped review windows start from week 3.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Week 1 Gate</CardTitle>
             <CardDescription>Students assigned into groups</CardDescription>
           </CardHeader>
@@ -99,6 +139,28 @@ export default function LecturerDashboardPage() {
             <p className="mt-1 text-xs text-muted-foreground">
               {complianceSummary?.summary.groups_without_topic_total ?? 0}{' '}
               groups still without a finalized topic
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Review Coverage</CardTitle>
+            <CardDescription>
+              Review capture and evidence visibility
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-bold">
+              {reviewSummary
+                ? `${reviewSummary.summary.reviewed_groups}/${reviewSummary.summary.groups_total}`
+                : '...'}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {reviewSummary?.summary.groups_missing_task_evidence ?? 0} groups
+              missing task evidence,{' '}
+              {reviewSummary?.summary.groups_missing_commit_evidence ?? 0}{' '}
+              missing commit evidence
             </p>
           </CardContent>
         </Card>
@@ -205,6 +267,16 @@ export default function LecturerDashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        <div className="col-span-1 md:col-span-2 lg:col-span-3">
+          <LecturerReviewQuickPanel
+            summary={reviewSummary}
+            isLoading={reviewLoading}
+            onSaved={() => {
+              void mutateReviewSummary();
+            }}
+          />
+        </div>
       </div>
 
       <Card className="mt-6">
