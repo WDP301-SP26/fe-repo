@@ -120,6 +120,113 @@ export const userAPI = {
     }),
 };
 
+export type ChatMessageType = 'TEXT' | 'SYSTEM';
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  type: ChatMessageType;
+  client_id: string | null;
+  read_by_recipient_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatConversation {
+  id: string;
+  semester_id: string;
+  class_id: string;
+  student_id: string;
+  lecturer_id: string;
+  status: 'ACTIVE' | 'CLOSED';
+  last_message_preview: string | null;
+  last_message_at: string | null;
+  unread_count: number;
+  last_message: ChatMessage | null;
+  counterpart: {
+    id: string;
+    email: string;
+    full_name: string | null;
+    role: string;
+  };
+  class_code: string;
+  semester_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GetOrCreateConversationInput {
+  semester_id: string;
+  class_id: string;
+  student_id: string;
+  lecturer_id: string;
+}
+
+export interface SendChatMessageInput {
+  content: string;
+  type?: ChatMessageType;
+  client_id?: string;
+}
+
+export interface ChatMessageListResponse {
+  data: ChatMessage[];
+  meta: {
+    next_cursor: string | null;
+    limit: number;
+    has_more: boolean;
+  };
+}
+
+export const chatAPI = {
+  getOrCreateConversation: (data: GetOrCreateConversationInput) =>
+    fetchAPI<ChatConversation>('/api/chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  listConversations: () =>
+    fetchAPI<{ data: ChatConversation[] }>('/api/chat/conversations'),
+  listMessages: (
+    conversationId: string,
+    options?: {
+      cursor?: string;
+      limit?: number;
+    },
+  ) => {
+    const params = new URLSearchParams();
+    if (options?.cursor) {
+      params.set('cursor', options.cursor);
+    }
+    if (options?.limit) {
+      params.set('limit', String(options.limit));
+    }
+
+    const query = params.toString();
+    const endpoint = query
+      ? `/api/chat/conversations/${conversationId}/messages?${query}`
+      : `/api/chat/conversations/${conversationId}/messages`;
+
+    return fetchAPI<ChatMessageListResponse>(endpoint);
+  },
+  sendMessage: (conversationId: string, data: SendChatMessageInput) =>
+    fetchAPI<ChatMessage>(
+      `/api/chat/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  markConversationRead: (conversationId: string) =>
+    fetchAPI<{
+      conversation_id: string;
+      read_count: number;
+      read_at: string;
+    }>(`/api/chat/conversations/${conversationId}/read`, {
+      method: 'PATCH',
+    }),
+};
+
 // GitHub API methods
 export const githubAPI = {
   getRepositories: () => fetchAPI<any>('/api/github/repos'),
