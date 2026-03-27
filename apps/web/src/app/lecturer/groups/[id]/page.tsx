@@ -17,7 +17,6 @@ import {
   Bot,
   Calendar,
   ExternalLink,
-  FileText,
   GitCommit,
   Github,
   Info,
@@ -413,13 +412,6 @@ export default function GroupDetailPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="flex flex-wrap gap-4 mb-6">
-                <Button
-                  onClick={() => generateReport('srs')}
-                  disabled={generatingReport}
-                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <FileText className="w-4 h-4" /> Generate AI SRS Document
-                </Button>
                 <Button
                   onClick={() => generateReport('assignments')}
                   disabled={generatingReport}

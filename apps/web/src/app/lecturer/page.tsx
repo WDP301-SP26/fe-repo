@@ -1,6 +1,7 @@
 'use client';
 
 import { LogoutButton } from '@/components/LogoutButton';
+import { DemoWeekOverrideCard } from '@/components/demo-week-override-card';
 import { LecturerReviewQuickPanel } from '@/components/lecturer-review-quick-panel';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -20,7 +21,11 @@ import { CreateClassModal } from './components/CreateClassModal';
 export default function LecturerDashboardPage() {
   const user = useAuthStore((state) => state.user);
   const { data: classes, error, isLoading } = useClasses();
-  const { data: complianceSummary, isLoading: governanceLoading } = useSWR(
+  const {
+    data: complianceSummary,
+    isLoading: governanceLoading,
+    mutate: mutateComplianceSummary,
+  } = useSWR(
     user ? '/api/semesters/current/compliance/lecturer-summary' : null,
     () => semesterAPI.getLecturerComplianceSummary(),
   );
@@ -33,6 +38,7 @@ export default function LecturerDashboardPage() {
     () => semesterAPI.getLecturerReviewSummary(),
   );
   const currentSemester = complianceSummary?.semester;
+  const currentWeek = currentSemester?.current_week;
   const classComplianceMap = new Map(
     complianceSummary?.classes?.map((item) => [item.class_id, item]) ?? [],
   );
@@ -49,6 +55,13 @@ export default function LecturerDashboardPage() {
         </div>
         <CreateClassModal />
       </div>
+
+      <DemoWeekOverrideCard
+        semester={currentSemester ?? null}
+        onUpdated={async () => {
+          await Promise.all([mutateComplianceSummary(), mutateReviewSummary()]);
+        }}
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
@@ -217,21 +230,39 @@ export default function LecturerDashboardPage() {
                               <div className="mt-3 flex flex-wrap gap-2">
                                 <Badge
                                   variant={
-                                    classCompliance.week1_status === 'PASS'
-                                      ? 'default'
-                                      : 'destructive'
+                                    currentWeek && currentWeek < 1
+                                      ? 'outline'
+                                      : classCompliance.week1_status === 'PASS'
+                                        ? 'default'
+                                        : 'destructive'
+                                  }
+                                  className={
+                                    currentWeek === 1
+                                      ? 'ring-2 ring-primary/30'
+                                      : undefined
                                   }
                                 >
-                                  Week 1 {classCompliance.week1_status}
+                                  {currentWeek && currentWeek < 1
+                                    ? 'Week 1 PENDING'
+                                    : `Week 1 ${classCompliance.week1_status}${currentWeek === 1 ? ' (ACTIVE)' : ''}`}
                                 </Badge>
                                 <Badge
                                   variant={
-                                    classCompliance.week2_status === 'PASS'
-                                      ? 'default'
-                                      : 'destructive'
+                                    currentWeek && currentWeek < 2
+                                      ? 'outline'
+                                      : classCompliance.week2_status === 'PASS'
+                                        ? 'default'
+                                        : 'destructive'
+                                  }
+                                  className={
+                                    currentWeek === 2
+                                      ? 'ring-2 ring-primary/30'
+                                      : undefined
                                   }
                                 >
-                                  Week 2 {classCompliance.week2_status}
+                                  {currentWeek && currentWeek < 2
+                                    ? 'Week 2 PENDING'
+                                    : `Week 2 ${classCompliance.week2_status}${currentWeek === 2 ? ' (ACTIVE)' : ''}`}
                                 </Badge>
                                 {classCompliance.students_without_group_count >
                                   0 && (

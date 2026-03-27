@@ -1,7 +1,5 @@
 import { AuthListener } from '@/components/auth-listener';
-import { TailwindIndicator } from '@/components/tailwind-indicator';
 import { ThemeProvider } from '@/components/theme-provider';
-import { ThemeToggle } from '@/components/theme-toggle';
 import { Toaster } from '@/components/ui/sonner';
 import { cn, constructMetadata } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
@@ -47,8 +45,6 @@ export default function RootLayout({
             </Suspense>
             {children}
             <Toaster richColors position="top-right" />
-            <ThemeToggle />
-            <TailwindIndicator />
           </ThemeProvider>
         </SessionProvider>
       </body>

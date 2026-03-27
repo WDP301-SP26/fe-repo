@@ -10,6 +10,12 @@ import { toast } from 'sonner';
 
 const ENABLE_DEMO_WEEK_OVERRIDE =
   process.env.NEXT_PUBLIC_ENABLE_DEMO_WEEK_OVERRIDE === 'true';
+const DEMO_WEEK_OVERRIDE_ALLOWED_ROLES = (
+  process.env.NEXT_PUBLIC_DEMO_WEEK_OVERRIDE_ALLOWED_ROLES || 'ADMIN,LECTURER'
+)
+  .split(',')
+  .map((value) => value.trim().toUpperCase())
+  .filter(Boolean);
 
 interface DemoWeekOverrideCardProps {
   semester: SemesterInfo | null;
@@ -26,8 +32,10 @@ export function DemoWeekOverrideCard({
     semester?.current_week ? String(semester.current_week) : '1',
   );
 
-  const isVisible =
-    ENABLE_DEMO_WEEK_OVERRIDE && !!semester && user?.role === 'ADMIN';
+  const userRole = user?.role?.toUpperCase();
+  const canOverride =
+    !!userRole && DEMO_WEEK_OVERRIDE_ALLOWED_ROLES.includes(userRole);
+  const isVisible = ENABLE_DEMO_WEEK_OVERRIDE && !!semester && canOverride;
 
   const weekOptions = useMemo(
     () => Array.from({ length: 10 }, (_, index) => String(index + 1)),
