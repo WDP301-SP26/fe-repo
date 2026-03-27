@@ -78,6 +78,48 @@ export const authAPI = {
     }),
 };
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  student_id: string | null;
+  role: 'STUDENT' | 'LECTURER' | 'ADMIN';
+  is_email_verified?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CreateAdminUserInput {
+  email: string;
+  full_name: string;
+  student_id: string;
+  password: string;
+}
+
+export interface UpdateAdminUserInput {
+  full_name?: string;
+  student_id?: string;
+  password?: string;
+}
+
+export const userAPI = {
+  getAllUsers: () => fetchAPI<AdminUser[]>('/api/users'),
+  createUser: (data: CreateAdminUserInput) =>
+    fetchAPI<AdminUser>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateUser: (id: string, data: UpdateAdminUserInput) =>
+    fetchAPI<AdminUser>(`/api/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteUser: (id: string) =>
+    fetchAPI<void>(`/api/users/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
 // GitHub API methods
 export const githubAPI = {
   getRepositories: () => fetchAPI<any>('/api/github/repos'),
@@ -360,6 +402,93 @@ export interface StudentReviewStatus {
   >;
 }
 
+export interface SemesterRosterLecturer {
+  id: string;
+  email: string;
+  full_name: string | null;
+  teaching_classes: Array<{
+    class_id: string;
+    class_code: string;
+    class_name: string;
+  }>;
+  examiner_classes: Array<{
+    class_id: string;
+    class_code: string;
+    class_name: string;
+  }>;
+}
+
+export interface SemesterRosterStudent {
+  id: string;
+  email: string;
+  full_name: string | null;
+  student_id: string | null;
+  class_id: string;
+  class_code: string | null;
+  class_name: string | null;
+}
+
+export interface SemesterRosterClass {
+  id: string;
+  code: string;
+  name: string;
+  lecturer_id: string | null;
+  lecturer_name: string | null;
+  student_count: number;
+  examiner_assignments: Array<{
+    lecturer_id: string;
+    lecturer_name: string | null;
+    lecturer_email: string | null;
+  }>;
+}
+
+export interface SemesterRosterResponse {
+  semester: SemesterInfo;
+  summary: {
+    classes_total: number;
+    lecturers_total: number;
+    students_total: number;
+    assigned_classes_total: number;
+    unassigned_classes_total: number;
+    examiner_assignments_total: number;
+    can_assign_examiners: boolean;
+  };
+  lecturers: SemesterRosterLecturer[];
+  students: SemesterRosterStudent[];
+  classes: SemesterRosterClass[];
+}
+
+export interface ExaminerAssignmentBoard {
+  semester: SemesterInfo;
+  gate: {
+    current_week: number;
+    can_assign: boolean;
+    reason: string | null;
+  };
+  lecturers: Array<{
+    id: string;
+    email: string;
+    full_name: string | null;
+    teaching_classes: Array<{
+      class_id: string;
+      class_code: string;
+      class_name: string;
+    }>;
+  }>;
+  classes: Array<{
+    id: string;
+    code: string;
+    name: string;
+    lecturer_id: string | null;
+    lecturer_name: string | null;
+    examiner_assignments: Array<{
+      lecturer_id: string;
+      lecturer_name: string | null;
+      lecturer_email: string | null;
+    }>;
+  }>;
+}
+
 export const semesterAPI = {
   getSemesters: () => fetchAPI<SemesterInfo[]>('/api/semesters'),
   getCurrentSemester: () =>
@@ -416,6 +545,10 @@ export const semesterAPI = {
 
 export const adminSemesterAPI = {
   getSemesters: () => fetchAPI<any[]>('/api/admin/semesters'),
+  getRoster: (semesterId: string) =>
+    fetchAPI<SemesterRosterResponse>(
+      `/api/admin/semesters/${semesterId}/roster`,
+    ),
   createSemester: (data: {
     code: string;
     name: string;
@@ -461,4 +594,99 @@ export const adminSemesterAPI = {
   },
   getImportBatches: (semesterId: string) =>
     fetchAPI<any[]>(`/api/admin/semesters/${semesterId}/import-batches`),
+  createLecturer: (
+    semesterId: string,
+    data: { email: string; full_name: string; password?: string },
+  ) =>
+    fetchAPI<AdminUser>(`/api/admin/semesters/${semesterId}/roster/lecturers`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateLecturer: (
+    semesterId: string,
+    lecturerId: string,
+    data: { email?: string; full_name?: string; password?: string },
+  ) =>
+    fetchAPI<AdminUser>(
+      `/api/admin/semesters/${semesterId}/roster/lecturers/${lecturerId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteLecturer: (semesterId: string, lecturerId: string) =>
+    fetchAPI<void>(
+      `/api/admin/semesters/${semesterId}/roster/lecturers/${lecturerId}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  createStudent: (
+    semesterId: string,
+    data: {
+      email: string;
+      full_name: string;
+      student_id: string;
+      class_id: string;
+      password?: string;
+    },
+  ) =>
+    fetchAPI<SemesterRosterStudent>(
+      `/api/admin/semesters/${semesterId}/roster/students`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  updateStudent: (
+    semesterId: string,
+    studentId: string,
+    data: {
+      email?: string;
+      full_name?: string;
+      student_id?: string;
+      class_id?: string;
+      password?: string;
+    },
+  ) =>
+    fetchAPI<SemesterRosterStudent>(
+      `/api/admin/semesters/${semesterId}/roster/students/${studentId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteStudent: (semesterId: string, studentId: string) =>
+    fetchAPI<void>(
+      `/api/admin/semesters/${semesterId}/roster/students/${studentId}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  updateTeachingAssignments: (
+    semesterId: string,
+    assignments: Array<{ class_id: string; lecturer_id: string }>,
+  ) =>
+    fetchAPI<SemesterRosterResponse>(
+      `/api/admin/semesters/${semesterId}/teaching-assignments`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ assignments }),
+      },
+    ),
+  getExaminerAssignments: (semesterId: string) =>
+    fetchAPI<ExaminerAssignmentBoard>(
+      `/api/admin/semesters/${semesterId}/examiner-assignments`,
+    ),
+  updateExaminerAssignments: (
+    semesterId: string,
+    assignments: Array<{ class_id: string; lecturer_ids: string[] }>,
+  ) =>
+    fetchAPI<ExaminerAssignmentBoard>(
+      `/api/admin/semesters/${semesterId}/examiner-assignments`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ assignments }),
+      },
+    ),
 };

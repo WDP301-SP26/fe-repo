@@ -5,7 +5,6 @@ import {
   BookOpen,
   FolderGit2,
   Home,
-  Layers,
   Settings,
   Users,
   Users2,
@@ -41,11 +40,6 @@ export const adminMenuItems: MenuItem[] = [
     title: 'Class Management',
     url: '/dashboard/admin/classes',
     icon: BookOpen,
-  },
-  {
-    title: 'System Integrations',
-    url: '/dashboard/admin/integrations',
-    icon: Layers,
   },
 ];
 
