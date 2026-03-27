@@ -44,6 +44,8 @@ export default function LecturerChatPage() {
   const apiBaseUrl = useMemo(() => getApiBaseUrl(), []);
   const socketRef = useRef<Socket | null>(null);
   const selectedConversationIdRef = useRef<string | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const localTypingConversationRef = useRef<string | null>(null);
 
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -52,6 +54,7 @@ export default function LecturerChatPage() {
   const [sending, setSending] = useState(false);
   const [creating, setCreating] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
+  const [isRemoteTyping, setIsRemoteTyping] = useState(false);
   const [contextInput, setContextInput] =
     useState<GetOrCreateConversationInput>({
       semester_id: '',
@@ -206,11 +209,26 @@ export default function LecturerChatPage() {
       mutateConversations();
     };
 
+    const handleTyping = (payload: {
+      conversation_id: string;
+      sender_id: string;
+      is_typing: boolean;
+    }) => {
+      if (payload.conversation_id !== selectedConversationIdRef.current) {
+        return;
+      }
+      if (payload.sender_id === user.id) {
+        return;
+      }
+      setIsRemoteTyping(!!payload.is_typing);
+    };
+
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);
     socket.on('chat:error', handleSocketError);
     socket.on('chat:new', handleNewMessage);
     socket.on('chat:read', handleRead);
+    socket.on('chat:typing', handleTyping);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -218,13 +236,19 @@ export default function LecturerChatPage() {
       socket.off('chat:error', handleSocketError);
       socket.off('chat:new', handleNewMessage);
       socket.off('chat:read', handleRead);
+      socket.off('chat:typing', handleTyping);
       socket.disconnect();
       if (socketRef.current === socket) {
         socketRef.current = null;
       }
       setSocketConnected(false);
+      setIsRemoteTyping(false);
     };
   }, [apiBaseUrl, mutateConversations, mutateMessages, token, user]);
+
+  useEffect(() => {
+    setIsRemoteTyping(false);
+  }, [selectedConversationId]);
 
   useEffect(() => {
     if (!selectedConversationId) {
@@ -304,6 +328,17 @@ export default function LecturerChatPage() {
       const socket = socketRef.current;
 
       if (socket?.connected) {
+        if (localTypingConversationRef.current === selectedConversationId) {
+          socket.emit('chat:typing:stop', {
+            conversation_id: selectedConversationId,
+          });
+          localTypingConversationRef.current = null;
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = null;
+          }
+        }
+
         await new Promise<void>((resolve, reject) => {
           socket.emit(
             'chat:send',
@@ -344,6 +379,49 @@ export default function LecturerChatPage() {
       setSending(false);
     }
   };
+
+  const handleDraftChange = (value: string) => {
+    setMessageDraft(value);
+
+    const socket = socketRef.current;
+    const conversationId = selectedConversationIdRef.current;
+    if (!socket?.connected || !conversationId) {
+      return;
+    }
+
+    if (!localTypingConversationRef.current && value.trim().length > 0) {
+      socket.emit('chat:typing:start', { conversation_id: conversationId });
+      localTypingConversationRef.current = conversationId;
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (localTypingConversationRef.current) {
+        socket.emit('chat:typing:stop', {
+          conversation_id: localTypingConversationRef.current,
+        });
+        localTypingConversationRef.current = null;
+      }
+      typingTimeoutRef.current = null;
+    }, 1200);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      const socket = socketRef.current;
+      if (socket?.connected && localTypingConversationRef.current) {
+        socket.emit('chat:typing:stop', {
+          conversation_id: localTypingConversationRef.current,
+        });
+      }
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -525,11 +603,17 @@ export default function LecturerChatPage() {
                 })}
             </div>
 
+            {selectedConversation && isRemoteTyping && (
+              <p className="text-xs text-muted-foreground px-1">
+                {displayName(selectedConversation)} đang nhập...
+              </p>
+            )}
+
             <div className="flex gap-2">
               <Input
                 placeholder="Nhập tin nhắn..."
                 value={messageDraft}
-                onChange={(event) => setMessageDraft(event.target.value)}
+                onChange={(event) => handleDraftChange(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
