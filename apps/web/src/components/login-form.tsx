@@ -11,7 +11,7 @@ import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { signIn, signOut } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -33,9 +33,6 @@ export function LoginForm({
     // Localhost often keeps stale local/session state when switching between envs.
     if (window.location.hostname === 'localhost') {
       useAuthStore.getState().logout();
-      signOut({ redirect: false }).catch(() => {
-        // Ignore cleanup errors; login can still proceed.
-      });
     }
   }, []);
 
