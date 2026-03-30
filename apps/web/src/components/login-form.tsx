@@ -11,8 +11,8 @@ import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import { signIn } from 'next-auth/react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -87,82 +87,97 @@ export function LoginForm({
       router.refresh();
     } catch (err) {
       console.error('❌ Login error:', err);
-      setServerError('Invalid email or password');
+      setServerError('Email hoặc mật khẩu không đúng');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl text-primary font-bold">
-            Login
+    <div className={cn('flex flex-col gap-4', className)} {...props}>
+      <Card className="border-slate-800 bg-slate-900/85 text-slate-100 shadow-2xl shadow-cyan-950/30 backdrop-blur">
+        <CardHeader className="space-y-3 pb-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+            Đăng Nhập Bảo Mật
+          </p>
+          <CardTitle className="text-2xl font-extrabold tracking-tight text-white">
+            Chào Mừng Trở Lại
           </CardTitle>
+          <p className="text-sm text-slate-300">
+            Sử dụng tài khoản nhà trường để tiếp tục.
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid gap-6">
+            <div className="grid gap-5">
               {serverError && (
-                <div className="text-sm font-medium text-destructive text-center">
-                  {serverError}
+                <div className="flex items-center gap-2 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{serverError}</span>
                 </div>
               )}
-              <div className="grid gap-6">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-slate-200">
+                    Email Trường
+                  </Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    placeholder="student@fpt.edu.vn"
                     {...register('email')}
                     disabled={isLoading}
+                    className="h-11 border-slate-700 bg-slate-950/70 text-slate-100 placeholder:text-slate-500"
                   />
                   {errors.email && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-rose-300">
                       {errors.email.message}
                     </p>
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="#"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-slate-200">
+                      Mật khẩu
+                    </Label>
+                    <span className="text-xs text-slate-400">
+                      Quên mật khẩu? Liên hệ quản trị viên
+                    </span>
                   </div>
                   <PasswordInput
                     id="password"
                     {...register('password')}
                     disabled={isLoading}
+                    className="h-11 border-slate-700 bg-slate-950/70 text-slate-100 placeholder:text-slate-500"
                   />
                   {errors.password && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-rose-300">
                       {errors.password.message}
                     </p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? 'Signing in...' : 'Login'}
+                <Button
+                  type="submit"
+                  className="h-11 w-full bg-cyan-400 font-semibold text-slate-950 hover:bg-cyan-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </Button>
               </div>
-              <div className="text-center text-sm">
-                Don&apos;t have an account?{' '}
-                <Link href="/signup" className="underline underline-offset-4">
-                  Sign up
-                </Link>
+
+              <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-300">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-cyan-300" />
+                  Hệ thống tự động cấp quyền và điều hướng theo vai trò sau khi
+                  đăng nhập.
+                </div>
               </div>
             </div>
           </form>
         </CardContent>
       </Card>
-      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary  ">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{' '}
-        and <a href="#">Privacy Policy</a>.
+      <div className="text-center text-xs text-slate-400">
+        Cần hỗ trợ tài khoản? Vui lòng liên hệ ban điều hành học phần.
       </div>
     </div>
   );
