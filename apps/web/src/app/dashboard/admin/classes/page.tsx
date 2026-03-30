@@ -450,7 +450,8 @@ export default function AdminClassesPage() {
           <CardHeader>
             <CardTitle>Create Semester</CardTitle>
             <CardDescription>
-              Mandatory first step before any lecturer/student bulk import.
+              Mandatory first step before student bulk import and lecturer
+              assignment.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -584,8 +585,9 @@ export default function AdminClassesPage() {
             <p className="text-muted-foreground">
               Required columns: <code>semester_code</code>, <code>email</code>,{' '}
               <code>full_name</code>, <code>class_code</code>,{' '}
-              <code>class_name</code>, <code>student_id</code>. The row{' '}
-              <code>semester_code</code> must match the selected semester.
+              <code>student_id</code>. Optional column: <code>class_name</code>.
+              The row <code>semester_code</code> must match the selected
+              semester.
             </p>
             <Link
               href="/templates/semester-import-template.csv"
@@ -690,18 +692,12 @@ export default function AdminClassesPage() {
                     Skipped: <strong>{preview.summary.rows.skipped}</strong>
                   </p>
                   <p>
-                    Classes created/updated:{' '}
-                    <strong>
-                      {preview.summary.classes.created}/
-                      {preview.summary.classes.updated}
-                    </strong>
+                    Classes are pre-provisioned by semester setup and matched by{' '}
+                    <strong>class_code</strong> during import.
                   </p>
                   <p>
-                    Lecturers created/updated:{' '}
-                    <strong>
-                      {preview.summary.lecturers.created}/
-                      {preview.summary.lecturers.updated}
-                    </strong>
+                    Lecturer assignment is managed separately in the{' '}
+                    <strong>Teaching Assignments</strong> tab.
                   </p>
                   <p>
                     Students created/updated:{' '}
@@ -734,9 +730,7 @@ export default function AdminClassesPage() {
                         className="rounded border p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <strong>
-                            Row {row.row_number} - {row.role}
-                          </strong>
+                          <strong>Row {row.row_number}</strong>
                           <span
                             className={
                               row.status === 'FAILED'

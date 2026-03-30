@@ -45,7 +45,14 @@ export function constructMetadata({
       type: 'website',
       locale: 'en_US',
     },
-    icons: '/favicon.ico',
+    icons: {
+      icon: [
+        { url: '/brand/jihub.svg', type: 'image/svg+xml' },
+        { url: '/favicon.ico', type: 'image/x-icon' },
+      ],
+      shortcut: ['/brand/jihub.svg', '/favicon.ico'],
+      apple: '/brand/jihub.svg',
+    },
     metadataBase: new URL(siteConfig.url),
     authors: [
       {
