@@ -1,3 +1,3 @@
-semester_code,role,email,full_name,class_code,class_name,student_id
-SP26,LECTURER,lecturer@fpt.edu.vn,Nguyen Van A,SWP391,Software Project,
-SP26,STUDENT,student@fpt.edu.vn,Tran Thi B,SWP391,Software Project,SE0001
+semester_code,email,full_name,class_code,student_id
+SP26,student1@fpt.edu.vn,Tran Thi B,SWP391,SE0001
+SP26,student2@fpt.edu.vn,Le Van C,SWP391,SE0002

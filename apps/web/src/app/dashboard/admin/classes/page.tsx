@@ -154,12 +154,6 @@ export default function AdminClassesPage() {
   const previewHasFailures = Boolean(preview?.summary?.rows?.failed);
   const previewReadyForImport = Boolean(preview?.readyForImport);
   const previewRows = preview?.rows ?? [];
-  const previewLecturers = previewRows.filter(
-    (row: any) => row.role === 'LECTURER',
-  );
-  const previewStudents = previewRows.filter(
-    (row: any) => row.role === 'STUDENT',
-  );
 
   const createSemester = async () => {
     setIsCreating(true);
@@ -440,7 +434,7 @@ export default function AdminClassesPage() {
         </h1>
         <p className="text-muted-foreground">
           Admin creates a semester first, then validates/imports one Excel/XLSX
-          file that contains both lecturer and student rows.
+          file that contains student rows only.
         </p>
       </div>
 
@@ -456,7 +450,8 @@ export default function AdminClassesPage() {
           <CardHeader>
             <CardTitle>Create Semester</CardTitle>
             <CardDescription>
-              Mandatory first step before any lecturer/student bulk import.
+              Mandatory first step before student bulk import and lecturer
+              assignment.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -588,11 +583,11 @@ export default function AdminClassesPage() {
           <div className="rounded-lg border border-dashed p-4 text-sm">
             <p className="font-medium">Template contract</p>
             <p className="text-muted-foreground">
-              Required columns: <code>semester_code</code>, <code>role</code>,{' '}
-              <code>email</code>, <code>full_name</code>,{' '}
-              <code>class_code</code>, <code>class_name</code>. Student rows
-              also require <code>student_id</code>. The row{' '}
-              <code>semester_code</code> must match the selected semester.
+              Required columns: <code>semester_code</code>, <code>email</code>,{' '}
+              <code>full_name</code>, <code>class_code</code>,{' '}
+              <code>student_id</code>. Optional column: <code>class_name</code>.
+              The row <code>semester_code</code> must match the selected
+              semester.
             </p>
             <Link
               href="/templates/semester-import-template.csv"
@@ -697,18 +692,12 @@ export default function AdminClassesPage() {
                     Skipped: <strong>{preview.summary.rows.skipped}</strong>
                   </p>
                   <p>
-                    Classes created/updated:{' '}
-                    <strong>
-                      {preview.summary.classes.created}/
-                      {preview.summary.classes.updated}
-                    </strong>
+                    Classes are pre-provisioned by semester setup and matched by{' '}
+                    <strong>class_code</strong> during import.
                   </p>
                   <p>
-                    Lecturers created/updated:{' '}
-                    <strong>
-                      {preview.summary.lecturers.created}/
-                      {preview.summary.lecturers.updated}
-                    </strong>
+                    Lecturer assignment is managed separately in the{' '}
+                    <strong>Teaching Assignments</strong> tab.
                   </p>
                   <p>
                     Students created/updated:{' '}
@@ -741,9 +730,7 @@ export default function AdminClassesPage() {
                         className="rounded border p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <strong>
-                            Row {row.row_number} - {row.role}
-                          </strong>
+                          <strong>Row {row.row_number}</strong>
                           <span
                             className={
                               row.status === 'FAILED'
@@ -1105,54 +1092,16 @@ export default function AdminClassesPage() {
           </TabsContent>
 
           <TabsContent value="preview" className="space-y-6">
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-1">
               <Card>
                 <CardHeader>
-                  <CardTitle>Lecturer Preview</CardTitle>
+                  <CardTitle>Student Import Preview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {previewLecturers.length > 0 ? (
-                    previewLecturers.map((row: any) => (
+                  {previewRows.length > 0 ? (
+                    previewRows.map((row: any) => (
                       <div
-                        key={`lecturer-${row.row_number}`}
-                        className="rounded border p-3 text-sm"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="font-medium">{row.email}</div>
-                          <Badge
-                            variant={
-                              row.status === 'FAILED'
-                                ? 'destructive'
-                                : row.status === 'SUCCESS'
-                                  ? 'secondary'
-                                  : 'outline'
-                            }
-                          >
-                            {row.status}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {row.class_code} • {row.message}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No lecturer preview rows yet.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Student Preview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {previewStudents.length > 0 ? (
-                    previewStudents.map((row: any) => (
-                      <div
-                        key={`student-${row.row_number}`}
+                        key={`preview-${row.row_number}-${row.email}-${row.class_code}`}
                         className="rounded border p-3 text-sm"
                       >
                         <div className="flex items-center justify-between gap-2">
