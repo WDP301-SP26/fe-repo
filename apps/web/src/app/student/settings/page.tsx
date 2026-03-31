@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { fetchAPI } from '@/lib/api';
+import { authAPI, fetchAPI } from '@/lib/api';
 import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -18,8 +18,10 @@ import {
   Github,
   LinkIcon,
   Loader2,
+  Unlink,
   User,
 } from 'lucide-react';
+import { useState } from 'react';
 import useSWR from 'swr';
 
 interface LinkedAccount {
@@ -31,10 +33,13 @@ interface LinkedAccount {
 
 export default function StudentSettingsPage() {
   const { user } = useAuthStore();
+  const [unlinking, setUnlinking] = useState<string | null>(null);
 
-  const { data: linkedAccounts, isLoading: loadingAccounts } = useSWR<
-    LinkedAccount[]
-  >('/api/auth/linked-accounts', () =>
+  const {
+    data: linkedAccounts,
+    isLoading: loadingAccounts,
+    mutate: refreshAccounts,
+  } = useSWR<LinkedAccount[]>('/api/auth/linked-accounts', () =>
     fetchAPI<LinkedAccount[]>('/api/auth/linked-accounts'),
   );
 
@@ -42,11 +47,23 @@ export default function StudentSettingsPage() {
   const frontendUrl = getFrontendBaseUrl();
 
   const handleConnectGithub = () => {
-    window.location.href = `${apiUrl}/api/auth/github?redirect_uri=${frontendUrl}/student/settings`;
+    window.location.href = `${apiUrl}/api/auth/github?redirect_uri=${encodeURIComponent(`${frontendUrl}/student/settings/auth/callback`)}`;
   };
 
   const handleConnectJira = () => {
-    window.location.href = `${apiUrl}/api/auth/jira?redirect_uri=${frontendUrl}/student/settings`;
+    window.location.href = `${apiUrl}/api/auth/jira?redirect_uri=${encodeURIComponent(`${frontendUrl}/student/settings/auth/callback`)}`;
+  };
+
+  const handleUnlink = async (provider: 'GITHUB' | 'JIRA') => {
+    setUnlinking(provider);
+    try {
+      await authAPI.unlinkProvider(provider);
+      await refreshAccounts();
+    } catch (err) {
+      console.error(`Failed to unlink ${provider}:`, err);
+    } finally {
+      setUnlinking(null);
+    }
   };
 
   const githubAccount = linkedAccounts?.find((a) => a.provider === 'GITHUB');
@@ -146,18 +163,35 @@ export default function StudentSettingsPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  onClick={handleConnectGithub}
-                  variant={githubAccount ? 'outline' : 'default'}
-                  className={
-                    !githubAccount
-                      ? 'bg-[#24292f] hover:bg-[#1b1f23] text-white'
-                      : ''
-                  }
-                >
-                  <Github className="mr-2 h-4 w-4" />
-                  {githubAccount ? 'Re-link GitHub' : 'Connect GitHub'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {githubAccount && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUnlink('GITHUB')}
+                      disabled={unlinking === 'GITHUB'}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      {unlinking === 'GITHUB' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Unlink className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleConnectGithub}
+                    variant={githubAccount ? 'outline' : 'default'}
+                    className={
+                      !githubAccount
+                        ? 'bg-[#24292f] hover:bg-[#1b1f23] text-white'
+                        : ''
+                    }
+                  >
+                    <Github className="mr-2 h-4 w-4" />
+                    {githubAccount ? 'Re-link GitHub' : 'Connect GitHub'}
+                  </Button>
+                </div>
               </div>
 
               {/* Jira */}
@@ -186,18 +220,35 @@ export default function StudentSettingsPage() {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant={jiraAccount ? 'outline' : 'default'}
-                  onClick={handleConnectJira}
-                  className={
-                    !jiraAccount
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : ''
-                  }
-                >
-                  <Columns3 className="mr-2 h-4 w-4" />
-                  {jiraAccount ? 'Re-link Jira' : 'Connect Jira'}
-                </Button>
+                <div className="flex items-center gap-2">
+                  {jiraAccount && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUnlink('JIRA')}
+                      disabled={unlinking === 'JIRA'}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      {unlinking === 'JIRA' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Unlink className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
+                  <Button
+                    variant={jiraAccount ? 'outline' : 'default'}
+                    onClick={handleConnectJira}
+                    className={
+                      !jiraAccount
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : ''
+                    }
+                  >
+                    <Columns3 className="mr-2 h-4 w-4" />
+                    {jiraAccount ? 'Re-link Jira' : 'Connect Jira'}
+                  </Button>
+                </div>
               </div>
             </>
           )}
