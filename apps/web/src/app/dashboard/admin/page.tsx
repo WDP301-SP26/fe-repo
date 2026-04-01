@@ -13,16 +13,17 @@ export default function AdminDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Control plane for role governance, class operations, and system
-          integration health.
+          Demo control plane cho quản trị người dùng và vận hành học kỳ/lớp.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>User Management</CardTitle>
-            <CardDescription>Role and account governance.</CardDescription>
+            <CardDescription>
+              Search, filter, and maintain demo user accounts.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Link
@@ -38,7 +39,7 @@ export default function AdminDashboardPage() {
           <CardHeader>
             <CardTitle>Class Management</CardTitle>
             <CardDescription>
-              Class and group operational quality.
+              Semester-first import, roster, and assignment controls.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -47,23 +48,6 @@ export default function AdminDashboardPage() {
               className="text-sm font-medium text-primary underline"
             >
               Open class controls
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>System Integrations</CardTitle>
-            <CardDescription>
-              Dependencies and secret readiness.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/dashboard/admin/integrations"
-              className="text-sm font-medium text-primary underline"
-            >
-              Open integration controls
             </Link>
           </CardContent>
         </Card>

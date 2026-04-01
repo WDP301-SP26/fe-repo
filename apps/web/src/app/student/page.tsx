@@ -24,6 +24,10 @@ export default function StudentDashboardPage() {
     user ? '/api/semesters/current/reviews/student-status' : null,
     () => semesterAPI.getStudentReviewStatus(),
   );
+  const { data: publishedScores, isLoading: publishedScoresLoading } = useSWR(
+    user ? '/api/semesters/current/reviews/student-scores' : null,
+    () => semesterAPI.getStudentPublishedScores(),
+  );
 
   // Filter out classes the student is already in
   const myClassIds = new Set(classes?.map((c: any) => c.id) || []);
@@ -180,6 +184,77 @@ export default function StudentDashboardPage() {
             <div className="text-sm text-muted-foreground">
               No grouped review milestone is active yet. Review checkpoints
               begin from week 3.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Published Milestone Scores</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {publishedScoresLoading ? (
+            <div className="text-sm text-muted-foreground">
+              Loading published scores...
+            </div>
+          ) : publishedScores?.milestones?.length ? (
+            publishedScores.milestones.map((item) => (
+              <div key={item.milestone.code} className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{item.milestone.label}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Week {item.milestone.week_start}-{item.milestone.week_end}
+                  </span>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {item.groups.map((group) => (
+                    <div
+                      key={`${item.milestone.code}-${group.group_id}`}
+                      className="rounded-md border p-3"
+                    >
+                      <div className="font-medium">{group.group_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {group.topic_name || 'Topic not finalized yet'}
+                      </div>
+                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          Task:{' '}
+                          <strong>
+                            {group.scores.task_progress_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Commit:{' '}
+                          <strong>
+                            {group.scores.commit_contribution_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Review:{' '}
+                          <strong>
+                            {group.scores.review_milestone_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Total:{' '}
+                          <strong>{group.scores.total_score ?? '-'}</strong>
+                        </div>
+                      </div>
+                      {group.lecturer_note ? (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Note: {group.lecturer_note}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              No published review scores yet.
             </div>
           )}
         </CardContent>

@@ -154,11 +154,14 @@ Modules:
 5. Hệ thống import thành công: tạo/cập nhật lớp theo học kỳ, gán giảng viên và thêm sinh viên vào lớp.
 6. Admin theo dõi trạng thái vận hành tổng thể.
 7. (Ẩn, phục vụ demo) Admin có thể set tuần hiện tại để mô phỏng checkpoint tuần 1/tuần 2.
+8. Admin quản lý User Management bằng search/filter/pagination client-side để trình bày demo nhanh.
 
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có (FE + BE code-complete theo cập nhật `codex_report_changelog`).
 - **Đã hoàn thiện hết chưa:** **Gần 100%** cho semester-first import; còn chờ 1 lần live sample import và tính năng ẩn set tuần phục vụ demo.
+- **Ghi chú demo UI:** Integrations không nằm trong flow demo admin. Login copy không nêu explicit Admin. Admin demo tập trung vào `Users` + `Classes`.
+- **Known limitation:** Pagination trang User Management hiện là client-side vì API users hiện chưa có server-side pagination contract.
 
 ---
 

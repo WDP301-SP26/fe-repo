@@ -40,14 +40,13 @@ export default function SignInPage() {
             </h1>
             <p className="max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
               Đăng nhập bằng tài khoản nhà trường để vào đúng không gian làm
-              việc theo vai trò. Admin quản lý học kỳ và roster, giảng viên vận
-              hành lớp, sinh viên theo dõi tiến độ dự án tại cùng một nơi.
+              việc của học phần. Tất cả tác vụ vận hành lớp, import và theo dõi
+              tiến độ đều được gom về một nơi cho buổi demo.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { label: 'Admin', desc: 'Quản trị học kỳ và lớp học' },
               { label: 'Giảng viên', desc: 'Dạy học và quy trình review' },
               { label: 'Sinh viên', desc: 'Không gian triển khai đồ án' },
             ].map((item) => (
