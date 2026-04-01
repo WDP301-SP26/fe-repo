@@ -243,16 +243,6 @@ export const githubAPI = {
 
 // Class API methods
 export const classAPI = {
-  createClass: (data: {
-    code: string;
-    name: string;
-    semester?: string;
-    studentEmails: string[];
-  }) =>
-    fetchAPI<any>('/api/classes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
   getAllClasses: () => fetchAPI<any>('/api/classes'),
   getMyClasses: () => fetchAPI<any>('/api/classes/my-classes'),
   joinClass: (classId: string, enrollment_key: string) =>
@@ -567,6 +557,7 @@ export interface SemesterRosterClass {
   lecturer_id: string | null;
   lecturer_name: string | null;
   student_count: number;
+  enrollment_key?: string | null;
   examiner_assignments: Array<{
     lecturer_id: string;
     lecturer_name: string | null;
@@ -696,6 +687,11 @@ export const adminSemesterAPI = {
     fetchAPI<SemesterRosterResponse>(
       `/api/admin/semesters/${semesterId}/roster`,
     ),
+  listClasses: (semesterId: string) =>
+    fetchAPI<{
+      semester: SemesterInfo;
+      classes: SemesterRosterClass[];
+    }>(`/api/admin/semesters/${semesterId}/classes`),
   createSemester: (data: {
     code: string;
     name: string;
@@ -720,6 +716,41 @@ export const adminSemesterAPI = {
     fetchAPI<any>(`/api/admin/semesters/${semesterId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+  createClass: (
+    semesterId: string,
+    data: {
+      code: string;
+      name: string;
+      enrollment_key?: string;
+    },
+  ) =>
+    fetchAPI<SemesterRosterClass>(
+      `/api/admin/semesters/${semesterId}/classes`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  updateClass: (
+    semesterId: string,
+    classId: string,
+    data: {
+      code?: string;
+      name?: string;
+      enrollment_key?: string;
+    },
+  ) =>
+    fetchAPI<SemesterRosterClass>(
+      `/api/admin/semesters/${semesterId}/classes/${classId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteClass: (semesterId: string, classId: string) =>
+    fetchAPI<void>(`/api/admin/semesters/${semesterId}/classes/${classId}`, {
+      method: 'DELETE',
     }),
   importWorkbook: (
     semesterId: string,

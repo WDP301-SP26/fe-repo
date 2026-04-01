@@ -1,11 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  AlertTriangle,
-  BarChart3,
   BookOpen,
   FolderGit2,
   Home,
-  MessageSquare,
   Settings,
   Users,
   Users2,
@@ -29,15 +26,12 @@ export const studentMenuItems: MenuItem[] = [
 export const lecturerMenuItems: MenuItem[] = [
   { title: 'Overview', url: '/lecturer', icon: Home },
   { title: 'My Student Groups', url: '/lecturer/groups', icon: Users2 },
-  { title: 'Chat', url: '/lecturer/chat', icon: MessageSquare },
-  { title: 'Analytics', url: '/lecturer/analytics', icon: BarChart3 },
-  { title: 'Free-rider Alerts', url: '/lecturer/alerts', icon: AlertTriangle },
   { title: 'Settings', url: '/lecturer/settings', icon: Settings },
 ];
 
 export const adminMenuItems: MenuItem[] = [
   { title: 'Overview', url: '/dashboard/admin', icon: Home },
-  { title: 'User Management', url: '/dashboard/admin/users', icon: Users },
+  { title: 'Student Management', url: '/dashboard/admin/users', icon: Users },
   {
     title: 'Class Management',
     url: '/dashboard/admin/classes',

@@ -3,6 +3,17 @@
 import { semesterAPI, type LecturerReviewSummary } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './ui/alert-dialog';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -152,6 +163,21 @@ export function LecturerReviewQuickPanel({
     }
   };
 
+  const hasActiveMilestone = Boolean(summary?.milestone);
+  const allGroupsReviewed = Boolean(
+    summary && summary.summary.groups_total > 0
+      ? summary.summary.reviewed_groups === summary.summary.groups_total
+      : false,
+  );
+  const canPublish = hasActiveMilestone && allGroupsReviewed && !isPublishing;
+  const publishBlockerMessage = !hasActiveMilestone
+    ? 'No active milestone is available to publish.'
+    : summary?.summary.groups_total === 0
+      ? 'No groups are available for this milestone.'
+      : !allGroupsReviewed
+        ? 'Review every group before publishing milestone scores.'
+        : null;
+
   if (isLoading) {
     return (
       <Card>
@@ -187,13 +213,56 @@ export function LecturerReviewQuickPanel({
             {summary.milestone.label} - Week {summary.milestone.week_start} to{' '}
             {summary.milestone.week_end}
           </CardTitle>
-          <Button
-            onClick={handlePublishMilestone}
-            disabled={isPublishing || summary.summary.reviewed_groups === 0}
-          >
-            {isPublishing ? 'Publishing...' : 'Publish milestone scores'}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button disabled={!canPublish}>
+                {isPublishing ? 'Publishing...' : 'Publish milestone scores'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Publish milestone scores?</AlertDialogTitle>
+                <AlertDialogDescription className="space-y-3">
+                  <span className="block">
+                    You are about to finalize scores for{' '}
+                    <strong>
+                      {summary.milestone.label} ({summary.milestone.code})
+                    </strong>
+                    .
+                  </span>
+                  <span className="block">
+                    Reviewed groups:{' '}
+                    <strong>{summary.summary.reviewed_groups}</strong> /{' '}
+                    {summary.summary.groups_total}
+                  </span>
+                  <span className="block">
+                    Published scores are treated as a milestone finalize action
+                    for the current review window.
+                  </span>
+                  {publishBlockerMessage ? (
+                    <span className="block text-destructive">
+                      {publishBlockerMessage}
+                    </span>
+                  ) : null}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handlePublishMilestone}
+                  disabled={!canPublish}
+                >
+                  Confirm publish
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
+        {publishBlockerMessage ? (
+          <p className="text-sm text-muted-foreground">
+            {publishBlockerMessage}
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">

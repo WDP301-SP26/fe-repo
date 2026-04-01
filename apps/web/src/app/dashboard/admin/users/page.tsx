@@ -14,7 +14,13 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -95,12 +101,12 @@ function getErrorMessage(error: unknown) {
 
 function formatRangeLabel(total: number, currentPage: number) {
   if (total === 0) {
-    return '0 user';
+    return '0 users';
   }
 
   const start = (currentPage - 1) * PAGE_SIZE + 1;
   const end = Math.min(currentPage * PAGE_SIZE, total);
-  return `${start}-${end} / ${total} user`;
+  return `${start}-${end} of ${total} users`;
 }
 
 export default function AdminUsersPage() {
@@ -187,11 +193,11 @@ export default function AdminUsersPage() {
     setIsCreating(true);
     try {
       await userAPI.createUser(createForm);
-      toast.success('User created');
+      toast.success('Student account created');
       setCreateForm(emptyCreateForm);
       await mutate();
     } catch (error) {
-      toast.error('Failed to create user', {
+      toast.error('Failed to create student account', {
         description: getErrorMessage(error),
       });
     } finally {
@@ -258,17 +264,23 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Student Management
+        </h1>
         <p className="max-w-3xl text-muted-foreground">
-          Quản trị tài khoản demo với đầy đủ create, edit, delete và bộ lọc
-          nhanh theo người dùng hiện có.
+          Create student accounts for the demo roster and browse all current
+          users with search, filters, and client-side pagination.
         </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card>
           <CardHeader>
-            <CardTitle>Create User</CardTitle>
+            <CardTitle>Create Student Account</CardTitle>
+            <CardDescription>
+              This form creates student accounts only. Use the directory below
+              to review all roles.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <Input
@@ -318,14 +330,14 @@ export default function AdminUsersPage() {
               }
             >
               {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create user
+              Create student
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Roster Snapshot</CardTitle>
+            <CardTitle>Account Snapshot</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
@@ -355,8 +367,8 @@ export default function AdminUsersPage() {
               </div>
             </div>
             <p className="text-muted-foreground">
-              Demo scope tập trung vào Users và Classes. Integrations không nằm
-              trong flow demo admin hiện tại.
+              This demo focuses on Students and Classes. Integrations are out of
+              scope for the active admin walkthrough.
             </p>
           </CardContent>
         </Card>
@@ -366,10 +378,10 @@ export default function AdminUsersPage() {
         <CardHeader className="gap-4">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <CardTitle>Users</CardTitle>
+              <CardTitle>User Directory</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Search và filter áp dụng trước, sau đó mới phân trang 10 dòng
-                mỗi trang.
+                Search and role filters apply before client-side pagination with
+                10 rows per page.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -420,7 +432,7 @@ export default function AdminUsersPage() {
               <Users className="mx-auto h-8 w-8 text-muted-foreground" />
               <h3 className="mt-3 text-sm font-semibold">No matching users</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Try clearing the search term or choosing another role filter.
+                Try clearing the search term or selecting another role filter.
               </p>
             </div>
           ) : (
