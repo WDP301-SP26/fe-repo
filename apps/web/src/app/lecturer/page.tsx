@@ -16,7 +16,6 @@ import { semesterAPI } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { CreateClassModal } from './components/CreateClassModal';
 
 export default function LecturerDashboardPage() {
   const user = useAuthStore((state) => state.user);
@@ -49,11 +48,10 @@ export default function LecturerDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold">Lecturer Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.full_name || 'Lecturer'}! Manage your classes
-            and groups here.
+            Welcome back, {user?.full_name || 'Lecturer'}! Review your assigned
+            classes, groups, and milestone progress here.
           </p>
         </div>
-        <CreateClassModal />
       </div>
 
       <DemoWeekOverrideCard
@@ -197,7 +195,7 @@ export default function LecturerDashboardPage() {
               )}
               {!isLoading && !error && (!classes || classes.length === 0) ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  No classes created yet. Click "Create Class" above to start.
+                  No assigned classes are available for this semester yet.
                 </div>
               ) : (
                 <div className="divide-y">
@@ -287,7 +285,7 @@ export default function LecturerDashboardPage() {
                             href={`/lecturer/classes/${c.id}`}
                             className="text-primary text-sm font-medium hover:underline p-2"
                           >
-                            View 7 Groups &rarr;
+                            View Groups &rarr;
                           </Link>
                         </div>
                       );
@@ -321,18 +319,18 @@ export default function LecturerDashboardPage() {
               href="/lecturer/groups"
               className="rounded-lg border p-4 text-left hover:bg-accent block"
             >
-              <h3 className="font-semibold">View All Groups</h3>
+              <h3 className="font-semibold">View Assigned Groups</h3>
               <p className="text-sm text-muted-foreground">
-                See and manage your groups
+                Open the groups you supervise in this semester
               </p>
             </a>
             <a
-              href="/lecturer/analytics"
+              href="/lecturer/settings"
               className="rounded-lg border p-4 text-left hover:bg-accent block"
             >
-              <h3 className="font-semibold">Analytics</h3>
+              <h3 className="font-semibold">Review Settings</h3>
               <p className="text-sm text-muted-foreground">
-                Check group performance and activity
+                Check linked accounts and lecturer preferences
               </p>
             </a>
           </div>

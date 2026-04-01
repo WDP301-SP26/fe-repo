@@ -13,16 +13,16 @@ export default function AdminDashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Demo control plane cho quản trị người dùng và vận hành học kỳ/lớp.
+          Demo control center for roster administration and semester operations.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>User Management</CardTitle>
+            <CardTitle>Student Management</CardTitle>
             <CardDescription>
-              Search, filter, and maintain demo user accounts.
+              Create student accounts and browse the current user directory.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
               href="/dashboard/admin/users"
               className="text-sm font-medium text-primary underline"
             >
-              Open user controls
+              Open student controls
             </Link>
           </CardContent>
         </Card>

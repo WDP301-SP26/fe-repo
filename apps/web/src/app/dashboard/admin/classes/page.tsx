@@ -5,6 +5,17 @@ import {
   ExaminerAssignmentBoardView,
   TeachingAssignmentBoard,
 } from '@/components/semester-assignment-boards';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AdminUser,
   ExaminerAssignmentBoard,
+  SemesterRosterClass,
   SemesterRosterResponse,
   adminSemesterAPI,
   semesterAPI,
@@ -75,6 +87,12 @@ const emptyStudentForm = {
   password: '',
 };
 
+const emptyClassForm = {
+  code: '',
+  name: '',
+  enrollment_key: '',
+};
+
 function toErrorMessage(error: unknown) {
   if (isAPIError(error)) return error.message;
   if (error instanceof Error) return error.message;
@@ -102,12 +120,18 @@ export default function AdminClassesPage() {
     null,
   );
   const [editingStudent, setEditingStudent] = useState<any | null>(null);
+  const [editingClass, setEditingClass] = useState<SemesterRosterClass | null>(
+    null,
+  );
   const [editingLecturerForm, setEditingLecturerForm] =
     useState(emptyLecturerForm);
   const [editingStudentForm, setEditingStudentForm] =
     useState(emptyStudentForm);
+  const [classForm, setClassForm] = useState(emptyClassForm);
+  const [editingClassForm, setEditingClassForm] = useState(emptyClassForm);
   const [isSavingLecturer, setIsSavingLecturer] = useState(false);
   const [isSavingStudent, setIsSavingStudent] = useState(false);
+  const [isSavingClass, setIsSavingClass] = useState(false);
   const [pendingTeachingClassId, setPendingTeachingClassId] = useState<
     string | null
   >(null);
@@ -132,6 +156,15 @@ export default function AdminClassesPage() {
       : null,
     () => adminSemesterAPI.getRoster(selectedSemesterId),
   );
+  const { data: classCatalog, mutate: mutateClassCatalog } = useSWR<{
+    semester: Semester;
+    classes: SemesterRosterClass[];
+  }>(
+    selectedSemesterId
+      ? `/api/admin/semesters/${selectedSemesterId}/classes`
+      : null,
+    () => adminSemesterAPI.listClasses(selectedSemesterId),
+  );
   const { data: examinerBoard, mutate: mutateExaminerBoard } =
     useSWR<ExaminerAssignmentBoard>(
       selectedSemesterId
@@ -154,6 +187,7 @@ export default function AdminClassesPage() {
   const previewHasFailures = Boolean(preview?.summary?.rows?.failed);
   const previewReadyForImport = Boolean(preview?.readyForImport);
   const previewRows = preview?.rows ?? [];
+  const semesterClasses = classCatalog?.classes ?? roster?.classes ?? [];
 
   const createSemester = async () => {
     setIsCreating(true);
@@ -400,6 +434,57 @@ export default function AdminClassesPage() {
     }
   };
 
+  const createClass = async () => {
+    if (!selectedSemesterId) return;
+    setIsSavingClass(true);
+    try {
+      await adminSemesterAPI.createClass(selectedSemesterId, {
+        code: classForm.code,
+        name: classForm.name,
+        enrollment_key: classForm.enrollment_key || undefined,
+      });
+      setClassForm(emptyClassForm);
+      await Promise.all([
+        mutateClassCatalog(),
+        mutateRoster(),
+        mutateExaminerBoard(),
+      ]);
+      toast.success('Class created');
+    } catch (error) {
+      toast.error('Failed to create class', {
+        description: toErrorMessage(error),
+      });
+    } finally {
+      setIsSavingClass(false);
+    }
+  };
+
+  const saveClassEdit = async () => {
+    if (!selectedSemesterId || !editingClass) return;
+    setIsSavingClass(true);
+    try {
+      await adminSemesterAPI.updateClass(selectedSemesterId, editingClass.id, {
+        code: editingClassForm.code || undefined,
+        name: editingClassForm.name || undefined,
+        enrollment_key: editingClassForm.enrollment_key || undefined,
+      });
+      setEditingClass(null);
+      setEditingClassForm(emptyClassForm);
+      await Promise.all([
+        mutateClassCatalog(),
+        mutateRoster(),
+        mutateExaminerBoard(),
+      ]);
+      toast.success('Class updated');
+    } catch (error) {
+      toast.error('Failed to update class', {
+        description: toErrorMessage(error),
+      });
+    } finally {
+      setIsSavingClass(false);
+    }
+  };
+
   const deleteLecturer = async (lecturerId: string) => {
     if (!selectedSemesterId) return;
     try {
@@ -421,6 +506,23 @@ export default function AdminClassesPage() {
       toast.success('Student removed from semester');
     } catch (error) {
       toast.error('Failed to remove student', {
+        description: toErrorMessage(error),
+      });
+    }
+  };
+
+  const deleteClass = async (classId: string) => {
+    if (!selectedSemesterId) return;
+    try {
+      await adminSemesterAPI.deleteClass(selectedSemesterId, classId);
+      await Promise.all([
+        mutateClassCatalog(),
+        mutateRoster(),
+        mutateExaminerBoard(),
+      ]);
+      toast.success('Class deleted');
+    } catch (error) {
+      toast.error('Failed to delete class', {
         description: toErrorMessage(error),
       });
     }
@@ -847,7 +949,135 @@ export default function AdminClassesPage() {
               </Card>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Class CRUD</CardTitle>
+                  <CardDescription>
+                    Manage classes directly inside the selected semester.
+                    Teaching assignment remains a separate workflow.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3">
+                    <Input
+                      placeholder="Class code"
+                      value={classForm.code}
+                      onChange={(e) =>
+                        setClassForm((prev) => ({
+                          ...prev,
+                          code: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      placeholder="Class name"
+                      value={classForm.name}
+                      onChange={(e) =>
+                        setClassForm((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                    />
+                    <Input
+                      placeholder="Enrollment key (optional)"
+                      value={classForm.enrollment_key}
+                      onChange={(e) =>
+                        setClassForm((prev) => ({
+                          ...prev,
+                          enrollment_key: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <Button
+                    onClick={createClass}
+                    disabled={
+                      isSavingClass || !classForm.code || !classForm.name
+                    }
+                  >
+                    {isSavingClass && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create Class
+                  </Button>
+
+                  <div className="space-y-3">
+                    {semesterClasses.map((classItem) => (
+                      <div
+                        key={classItem.id}
+                        className="rounded-lg border p-3 text-sm"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-medium">
+                              {classItem.code} - {classItem.name}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {classItem.student_count} student(s) •{' '}
+                              {classItem.lecturer_name ||
+                                'No lecturer assigned'}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Enrollment key:{' '}
+                              <span className="font-mono">
+                                {classItem.enrollment_key || 'Auto-generated'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingClass(classItem);
+                                setEditingClassForm({
+                                  code: classItem.code,
+                                  name: classItem.name,
+                                  enrollment_key:
+                                    classItem.enrollment_key || '',
+                                });
+                              }}
+                            >
+                              Edit
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete class from this semester?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This removes{' '}
+                                    <strong>{classItem.code}</strong> only when
+                                    the class has no students, groups, or
+                                    assignment data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteClass(classItem.id)}
+                                  >
+                                    Confirm delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle>Lecturer CRUD</CardTitle>
@@ -940,13 +1170,37 @@ export default function AdminClassesPage() {
                             >
                               Edit
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteLecturer(lecturer.id)}
-                            >
-                              Delete
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete lecturer from this semester?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This removes{' '}
+                                    <strong>
+                                      {lecturer.full_name || lecturer.email}
+                                    </strong>{' '}
+                                    from the semester roster. Teaching
+                                    assignments must already be cleared before
+                                    deletion can succeed.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteLecturer(lecturer.id)}
+                                  >
+                                    Confirm delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -1015,7 +1269,7 @@ export default function AdminClassesPage() {
                         <SelectValue placeholder="Assign class" />
                       </SelectTrigger>
                       <SelectContent>
-                        {roster.classes.map((classItem) => (
+                        {semesterClasses.map((classItem) => (
                           <SelectItem key={classItem.id} value={classItem.id}>
                             {classItem.code} - {classItem.name}
                           </SelectItem>
@@ -1074,13 +1328,36 @@ export default function AdminClassesPage() {
                             >
                               Edit
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => deleteStudent(student.id)}
-                            >
-                              Remove
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive">
+                                  Remove
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Remove student from this semester?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This removes{' '}
+                                    <strong>
+                                      {student.full_name || student.email}
+                                    </strong>{' '}
+                                    from the selected semester roster and class
+                                    assignment.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteStudent(student.id)}
+                                  >
+                                    Confirm removal
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </div>
                       </div>
@@ -1164,6 +1441,68 @@ export default function AdminClassesPage() {
           </TabsContent>
         </Tabs>
       )}
+
+      <Dialog
+        open={!!editingClass}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingClass(null);
+            setEditingClassForm(emptyClassForm);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Class</DialogTitle>
+            <DialogDescription>
+              Update class metadata inside the selected semester.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={editingClassForm.code}
+              onChange={(e) =>
+                setEditingClassForm((prev) => ({
+                  ...prev,
+                  code: e.target.value,
+                }))
+              }
+              placeholder="Class code"
+            />
+            <Input
+              value={editingClassForm.name}
+              onChange={(e) =>
+                setEditingClassForm((prev) => ({
+                  ...prev,
+                  name: e.target.value,
+                }))
+              }
+              placeholder="Class name"
+            />
+            <Input
+              value={editingClassForm.enrollment_key}
+              onChange={(e) =>
+                setEditingClassForm((prev) => ({
+                  ...prev,
+                  enrollment_key: e.target.value,
+                }))
+              }
+              placeholder="Enrollment key"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingClass(null)}>
+              Cancel
+            </Button>
+            <Button onClick={saveClassEdit} disabled={isSavingClass}>
+              {isSavingClass && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={!!editingLecturer}
@@ -1270,7 +1609,7 @@ export default function AdminClassesPage() {
                 <SelectValue placeholder="Assign class" />
               </SelectTrigger>
               <SelectContent>
-                {roster?.classes.map((classItem) => (
+                {semesterClasses.map((classItem) => (
                   <SelectItem key={classItem.id} value={classItem.id}>
                     {classItem.code} - {classItem.name}
                   </SelectItem>

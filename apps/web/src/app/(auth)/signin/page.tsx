@@ -30,25 +30,25 @@ export default function SignInPage() {
           </div>
 
           <p className="inline-flex rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-200">
-            Cổng Điều Hành Học Phần SWP391
+            SWP391 Semester Workspace
           </p>
 
           <div className="space-y-4">
             <h1 className="max-w-2xl text-4xl font-black leading-tight tracking-tight text-white sm:text-5xl">
-              Một cổng duy nhất cho quản lý học kỳ, vận hành lớp học và tiến độ
-              đồ án.
+              One workspace for semester operations, class delivery, and project
+              progress.
             </h1>
             <p className="max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-              Đăng nhập bằng tài khoản nhà trường để vào đúng không gian làm
-              việc của học phần. Tất cả tác vụ vận hành lớp, import và theo dõi
-              tiến độ đều được gom về một nơi cho buổi demo.
+              Sign in with your school account to access the correct course
+              workspace. Import, roster, and progress workflows are centralized
+              here for the demo.
             </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              { label: 'Giảng viên', desc: 'Dạy học và quy trình review' },
-              { label: 'Sinh viên', desc: 'Không gian triển khai đồ án' },
+              { label: 'Lecturer', desc: 'Teaching delivery and review flow' },
+              { label: 'Student', desc: 'Project execution workspace' },
             ].map((item) => (
               <article
                 key={item.label}
