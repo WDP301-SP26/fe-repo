@@ -449,7 +449,12 @@ export interface StudentWeeklyWarnings {
 }
 
 export interface ReviewMilestoneInfo {
-  code: 'REVIEW_1' | 'PROGRESS_TRACKING' | 'REVIEW_2' | 'REVIEW_3';
+  code:
+    | 'REVIEW_1'
+    | 'PROGRESS_TRACKING'
+    | 'REVIEW_2'
+    | 'REVIEW_3'
+    | 'FINAL_PRESENTATION';
   label: string;
   week_start: number;
   week_end: number;
@@ -467,6 +472,7 @@ export interface GroupReviewSummary {
     total_score: number | null;
   };
   lecturer_note: string | null;
+  is_published?: boolean;
   snapshot: {
     task_total: number;
     task_done: number;
@@ -507,6 +513,25 @@ export interface StudentReviewStatus {
       class_name: string;
     } & GroupReviewSummary
   >;
+}
+
+export interface StudentPublishedScoresResponse {
+  semester: SemesterInfo | null;
+  milestones: Array<{
+    milestone: ReviewMilestoneInfo;
+    groups: Array<{
+      group_id: string;
+      group_name: string;
+      topic_name: string | null;
+      scores: {
+        task_progress_score: number | null;
+        commit_contribution_score: number | null;
+        review_milestone_score: number | null;
+        total_score: number | null;
+      };
+      lecturer_note: string | null;
+    }>;
+  }>;
 }
 
 export interface SemesterRosterLecturer {
@@ -623,6 +648,10 @@ export const semesterAPI = {
     fetchAPI<StudentReviewStatus>(
       '/api/semesters/current/reviews/student-status',
     ),
+  getStudentPublishedScores: () =>
+    fetchAPI<StudentPublishedScoresResponse>(
+      '/api/semesters/current/reviews/student-scores',
+    ),
   upsertCurrentGroupReview: (
     groupId: string,
     data: {
@@ -640,6 +669,17 @@ export const semesterAPI = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  publishMilestoneReviews: (data: {
+    milestone_code: ReviewMilestoneInfo['code'];
+    class_id?: string;
+  }) =>
+    fetchAPI<{ updated_count: number }>(
+      '/api/semesters/current/reviews/publish',
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
   setCurrentWeek: (semesterId: string, current_week: number) =>
     fetchAPI<{ semester: SemesterInfo; audit_recorded: boolean }>(
       `/api/semesters/${semesterId}/current-week`,

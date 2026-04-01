@@ -2,6 +2,7 @@
 
 import { semesterAPI, type LecturerReviewSummary } from '@/lib/api';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -50,6 +51,7 @@ export function LecturerReviewQuickPanel({
   onSaved,
 }: LecturerReviewQuickPanelProps) {
   const [drafts, setDrafts] = useState<DraftState>(() => toDraft(summary));
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     setDrafts(toDraft(summary));
@@ -124,6 +126,32 @@ export function LecturerReviewQuickPanel({
     }
   };
 
+  const handlePublishMilestone = async () => {
+    if (!summary?.milestone) {
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const result = await semesterAPI.publishMilestoneReviews({
+        milestone_code: summary.milestone.code,
+      });
+      toast.success(
+        result.updated_count > 0
+          ? `Published ${result.updated_count} review(s) for ${summary.milestone.label}.`
+          : `No draft review found to publish for ${summary.milestone.label}.`,
+      );
+      onSaved?.();
+    } catch (error) {
+      toast.error('Failed to publish milestone reviews.', {
+        description:
+          error instanceof Error ? error.message : 'Unexpected error.',
+      });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -154,10 +182,18 @@ export function LecturerReviewQuickPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>
-          {summary.milestone.label} - Week {summary.milestone.week_start} to{' '}
-          {summary.milestone.week_end}
-        </CardTitle>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle>
+            {summary.milestone.label} - Week {summary.milestone.week_start} to{' '}
+            {summary.milestone.week_end}
+          </CardTitle>
+          <Button
+            onClick={handlePublishMilestone}
+            disabled={isPublishing || summary.summary.reviewed_groups === 0}
+          >
+            {isPublishing ? 'Publishing...' : 'Publish milestone scores'}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">
@@ -225,6 +261,11 @@ export function LecturerReviewQuickPanel({
                           }
                         >
                           {group.review_status}
+                        </Badge>
+                        <Badge
+                          variant={group.is_published ? 'default' : 'outline'}
+                        >
+                          {group.is_published ? 'PUBLISHED' : 'DRAFT'}
                         </Badge>
                         {group.warnings.map((warning) => (
                           <Badge key={warning} variant="destructive">
