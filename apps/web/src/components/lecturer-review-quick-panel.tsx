@@ -425,7 +425,7 @@ export function LecturerReviewQuickPanel({
 
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <div className="text-sm text-muted-foreground">
-                        Current total:{' '}
+                        Current average (DTB):{' '}
                         <span className="font-semibold text-foreground">
                           {group.scores.total_score ?? '-'}
                         </span>

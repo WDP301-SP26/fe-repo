@@ -461,7 +461,7 @@ export interface ReviewMilestoneInfo {
     | 'PROGRESS_TRACKING'
     | 'REVIEW_2'
     | 'REVIEW_3'
-    | 'FINAL_PRESENTATION';
+    | 'FINAL_SCORE';
   label: string;
   week_start: number;
   week_end: number;
