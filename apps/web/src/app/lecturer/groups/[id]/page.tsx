@@ -52,27 +52,22 @@ export default function GroupDetailPage() {
 
   // Analytics Report States
   const [reportResult, setReportResult] = useState<any>(null);
-  const [reportType, setReportType] = useState<string>(''); // srs | assignments | commits
+  const [reportType, setReportType] = useState<string>('');
   const [generatingReport, setGeneratingReport] = useState(false);
   const [reportError, setReportError] = useState('');
   const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
     null,
   );
-  const [assignmentsPage, setAssignmentsPage] = useState(1);
 
   const generateReport = async (type: string) => {
     setGeneratingReport(true);
     setReportError('');
     setReportResult(null);
     setReportType(type);
-    setAssignmentsPage(1);
     try {
       if (type === 'srs') {
         const res = await reportAPI.generateSrs(groupId);
         setReportResult(res.markdown);
-      } else if (type === 'assignments') {
-        const res = await reportAPI.getAssignments(groupId);
-        setReportResult(res);
       } else if (type === 'commits') {
         const res = await reportAPI.getCommitsStats(groupId);
         setReportResult(res);
@@ -87,19 +82,6 @@ export default function GroupDetailPage() {
       setGeneratingReport(false);
     }
   };
-
-  const assignments =
-    reportType === 'assignments' ? reportResult?.assignments || [] : [];
-  const assignmentsPageSize = 8;
-  const assignmentsTotalPages = Math.max(
-    1,
-    Math.ceil(assignments.length / assignmentsPageSize),
-  );
-  const safeAssignmentsPage = Math.min(assignmentsPage, assignmentsTotalPages);
-  const assignmentsOnPage = useMemo(() => {
-    const start = (safeAssignmentsPage - 1) * assignmentsPageSize;
-    return assignments.slice(start, start + assignmentsPageSize);
-  }, [assignments, safeAssignmentsPage]);
 
   const reportWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -341,7 +323,7 @@ export default function GroupDetailPage() {
                 !commitsLoading &&
                 !commitsError &&
                 commits.length > 0 && (
-                  <div className="divide-y max-h-[600px] overflow-y-auto">
+                  <div className="divide-y max-h-150 overflow-y-auto">
                     {commits.map((commit: any, idx: number) => (
                       <div
                         key={idx}
@@ -413,14 +395,6 @@ export default function GroupDetailPage() {
             <CardContent className="pt-6">
               <div className="flex flex-wrap gap-4 mb-6">
                 <Button
-                  onClick={() => generateReport('assignments')}
-                  disabled={generatingReport}
-                  variant="outline"
-                  className="flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
-                >
-                  <Users className="w-4 h-4" /> Task Assignment Overview
-                </Button>
-                <Button
                   onClick={() => generateReport('commits')}
                   disabled={generatingReport}
                   variant="outline"
@@ -448,7 +422,7 @@ export default function GroupDetailPage() {
               )}
 
               {!generatingReport && reportResult && (
-                <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-[800px] overflow-y-auto">
+                <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-200 overflow-y-auto">
                   <Alert className="mb-5 border-primary/20 bg-primary/5">
                     <Info className="h-4 w-4" />
                     <AlertTitle>Report Metadata</AlertTitle>
@@ -484,86 +458,6 @@ export default function GroupDetailPage() {
                       <pre className="whitespace-pre-wrap font-sans text-sm">
                         {reportResult}
                       </pre>
-                    </div>
-                  )}
-                  {reportType === 'assignments' && (
-                    <div className="space-y-4 w-full">
-                      <h3 className="text-lg font-bold border-b pb-2">
-                        Jira Assignments Summary
-                      </h3>
-                      <p>
-                        Total Tasks: <strong>{reportResult.totalTasks}</strong>
-                      </p>
-                      <ul className="grid md:grid-cols-2 gap-4 mt-4">
-                        {assignmentsOnPage.map((task: any) => (
-                          <li
-                            key={task.key}
-                            className="p-3 border rounded-md flex justify-between items-center text-sm bg-muted/10 shadow-sm"
-                          >
-                            <div className="min-w-0 pr-4">
-                              <span className="font-semibold shrink-0 text-primary">
-                                {task.key}
-                              </span>
-                              <span className="ml-2 truncate hidden md:inline">
-                                {task.summary}
-                              </span>
-                              <div className="text-muted-foreground text-xs mt-1">
-                                {task.type}
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <div className="font-medium text-xs">
-                                {task.assignee}
-                              </div>
-                              <div className="text-[10px] font-bold tracking-wider bg-muted border px-2 py-0.5 rounded-full mt-1 inline-block uppercase">
-                                {task.status}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                      {assignments.length > assignmentsPageSize && (
-                        <div className="mt-4 flex items-center justify-between border rounded-md p-3">
-                          <p className="text-xs text-muted-foreground">
-                            Page {safeAssignmentsPage} of{' '}
-                            {assignmentsTotalPages}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setAssignmentsPage((prev) =>
-                                  Math.max(1, prev - 1),
-                                )
-                              }
-                              disabled={safeAssignmentsPage <= 1}
-                            >
-                              Previous
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setAssignmentsPage((prev) =>
-                                  Math.min(assignmentsTotalPages, prev + 1),
-                                )
-                              }
-                              disabled={
-                                safeAssignmentsPage >= assignmentsTotalPages
-                              }
-                            >
-                              Next
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                      {(!reportResult.assignments ||
-                        reportResult.assignments.length === 0) && (
-                        <p className="text-muted-foreground italic">
-                          No issues found on Jira.
-                        </p>
-                      )}
                     </div>
                   )}
                   {reportType === 'commits' && (
