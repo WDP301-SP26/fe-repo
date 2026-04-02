@@ -1,6 +1,5 @@
 'use client';
 
-import { ImportStudentsDialog } from '@/components/import-students-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useClassGroups } from '@/hooks/use-api';
@@ -28,10 +27,6 @@ export default function ClassDetailsPage() {
             </p>
           </div>
         </div>
-        <ImportStudentsDialog
-          classId={classId}
-          onSuccess={() => window.location.reload()}
-        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
