@@ -342,6 +342,15 @@ export default function LecturerDashboardPage() {
                 Chat trực tiếp với sinh viên theo từng class và semester
               </p>
             </a>
+            <a
+              href="/lecturer/review-points"
+              className="rounded-lg border p-4 text-left hover:bg-accent block"
+            >
+              <h3 className="font-semibold">Review Point Scoring</h3>
+              <p className="text-sm text-muted-foreground">
+                Chấm điểm checkpoint theo milestone review và publish điểm
+              </p>
+            </a>
           </div>
         </CardContent>
       </Card>

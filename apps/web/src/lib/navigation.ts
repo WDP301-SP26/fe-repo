@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BookOpen,
+  ClipboardCheck,
   FolderGit2,
   Home,
   MessageSquare,
@@ -27,6 +28,11 @@ export const studentMenuItems: MenuItem[] = [
 export const lecturerMenuItems: MenuItem[] = [
   { title: 'Overview', url: '/lecturer', icon: Home },
   { title: 'My Student Groups', url: '/lecturer/groups', icon: Users2 },
+  {
+    title: 'Review Point Scoring',
+    url: '/lecturer/review-points',
+    icon: ClipboardCheck,
+  },
   { title: 'Chat', url: '/lecturer/chat', icon: MessageSquare },
   { title: 'Settings', url: '/lecturer/settings', icon: Settings },
 ];
