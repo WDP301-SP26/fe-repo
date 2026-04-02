@@ -1,11 +1,5 @@
 'use client';
 
-import {
-  DndContext,
-  DragEndEvent,
-  useDraggable,
-  useDroppable,
-} from '@dnd-kit/core';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +15,12 @@ import type {
   SemesterRosterLecturer,
 } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  DragEndEvent,
+  useDraggable,
+  useDroppable,
+} from '@dnd-kit/core';
 import type { ReactNode } from 'react';
 
 function DraggableLecturer({
@@ -124,7 +124,7 @@ export function TeachingAssignmentBoard({
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card>
+        <Card className="border-2 border-slate-300 shadow-sm">
           <CardHeader>
             <CardTitle>Lecturer Pool</CardTitle>
             <CardDescription>
@@ -154,7 +154,7 @@ export function TeachingAssignmentBoard({
               key={classItem.id}
               id={`teaching-class:${classItem.id}`}
               className={cn(
-                'space-y-3',
+                'space-y-3 border-2 border-solid border-slate-300 bg-slate-50/40',
                 pendingClassId === classItem.id && 'opacity-60',
               )}
             >
@@ -164,7 +164,7 @@ export function TeachingAssignmentBoard({
                   {classItem.name}
                 </div>
               </div>
-              <div className="rounded-md bg-muted/50 p-3 text-sm">
+              <div className="rounded-md border border-slate-300 bg-muted/50 p-3 text-sm">
                 <div className="text-xs uppercase text-muted-foreground">
                   Current lecturer
                 </div>
