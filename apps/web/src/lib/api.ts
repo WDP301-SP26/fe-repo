@@ -752,6 +752,24 @@ export const adminSemesterAPI = {
     fetchAPI<void>(`/api/admin/semesters/${semesterId}/classes/${classId}`, {
       method: 'DELETE',
     }),
+  generateClassGroups: (
+    semesterId: string,
+    classId: string,
+    group_count?: number,
+  ) =>
+    fetchAPI<{
+      class_id: string;
+      class_code: string;
+      desired_group_count: number;
+      existing_group_count: number;
+      created_group_count: number;
+    }>(
+      `/api/admin/semesters/${semesterId}/classes/${classId}/generate-groups`,
+      {
+        method: 'POST',
+        body: JSON.stringify(group_count ? { group_count } : {}),
+      },
+    ),
   importWorkbook: (
     semesterId: string,
     file: File,
