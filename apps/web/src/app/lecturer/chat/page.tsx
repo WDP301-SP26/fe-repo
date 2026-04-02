@@ -79,6 +79,7 @@ export default function LecturerChatPage() {
     chatAPI.listConversations,
     {
       refreshInterval: 0,
+      revalidateOnFocus: false,
     },
   );
 
@@ -118,6 +119,7 @@ export default function LecturerChatPage() {
     ([, conversationId]) => chatAPI.listMessages(conversationId, { limit: 50 }),
     {
       refreshInterval: 0,
+      revalidateOnFocus: false,
     },
   );
 
@@ -128,6 +130,22 @@ export default function LecturerChatPage() {
   useEffect(() => {
     selectedConversationIdRef.current = selectedConversationId;
   }, [selectedConversationId]);
+
+  // Silent polling fallback to keep chat fresh when websocket events are delayed.
+  useEffect(() => {
+    if (!selectedConversationId) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      void mutateMessages();
+      void mutateConversations();
+    }, 3000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [selectedConversationId, mutateConversations, mutateMessages]);
 
   useEffect(() => {
     if (!user || !token) {

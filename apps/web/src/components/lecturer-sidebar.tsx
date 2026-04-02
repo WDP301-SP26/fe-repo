@@ -15,13 +15,24 @@ import {
 } from '@/components/ui/sidebar';
 import { isActiveMenuItem, lecturerMenuItems } from '@/lib/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { Users2 } from 'lucide-react';
+import { MessageSquare, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
 
 export function LecturerSidebar() {
   const user = useAuthStore((state) => state.user);
   const pathname = usePathname();
+  const navItems = useMemo(() => {
+    if (lecturerMenuItems.some((item) => item.url === '/lecturer/chat')) {
+      return lecturerMenuItems;
+    }
+
+    return [
+      ...lecturerMenuItems,
+      { title: 'Chat', url: '/lecturer/chat', icon: MessageSquare },
+    ];
+  }, []);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -48,7 +59,7 @@ export function LecturerSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {lecturerMenuItems.map((item) => {
+              {navItems.map((item) => {
                 const isActive = isActiveMenuItem(pathname, item.url);
 
                 return (
