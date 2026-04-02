@@ -384,16 +384,23 @@ export default function GroupDetailPage() {
           <Card className="shadow-sm border-primary/20 bg-primary/2">
             <CardHeader className="pb-4 border-b bg-muted/5 rounded-t-lg">
               <CardTitle className="text-xl flex items-center gap-2">
-                <Bot className="h-5 w-5 text-primary" /> AI Reports & Group
-                Analytics
+                <Bot className="h-5 w-5 text-primary" /> Review Point Scoring &
+                Group Analytics
               </CardTitle>
               <CardDescription>
-                Generate comprehensive reports using Jira tasks and GitHub
-                statistics from your students project spaces.
+                This area is for lecturer review-point grading and group
+                analytics evidence.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="flex flex-wrap gap-4 mb-6">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
+                  onClick={() => router.push('/lecturer/review-points')}
+                >
+                  <Bot className="w-4 h-4" /> Open Review Point Scoring
+                </Button>
                 <Button
                   onClick={() => generateReport('commits')}
                   disabled={generatingReport}
