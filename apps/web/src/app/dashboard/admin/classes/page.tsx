@@ -138,6 +138,11 @@ export default function AdminClassesPage() {
   const [pendingExaminerClassId, setPendingExaminerClassId] = useState<
     string | null
   >(null);
+  const [selectedGroupGeneratorClassId, setSelectedGroupGeneratorClassId] =
+    useState('');
+  const [generatingGroupsClassId, setGeneratingGroupsClassId] = useState<
+    string | null
+  >(null);
 
   const {
     data: semesters,
@@ -525,6 +530,31 @@ export default function AdminClassesPage() {
       toast.error('Failed to delete class', {
         description: toErrorMessage(error),
       });
+    }
+  };
+
+  const generateGroupsForClass = async (classId: string) => {
+    if (!selectedSemesterId) return;
+    setGeneratingGroupsClassId(classId);
+    try {
+      const result = await adminSemesterAPI.generateClassGroups(
+        selectedSemesterId,
+        classId,
+        6,
+      );
+      await Promise.all([mutateClassCatalog(), mutateRoster()]);
+      toast.success('Groups generated', {
+        description:
+          result.created_group_count > 0
+            ? `Created ${result.created_group_count} group(s) for ${result.class_code}.`
+            : `${result.class_code} already has ${result.desired_group_count} group(s).`,
+      });
+    } catch (error) {
+      toast.error('Failed to generate groups', {
+        description: toErrorMessage(error),
+      });
+    } finally {
+      setGeneratingGroupsClassId(null);
     }
   };
 
@@ -923,6 +953,7 @@ export default function AdminClassesPage() {
           <TabsList>
             <TabsTrigger value="roster">Roster CRUD</TabsTrigger>
             <TabsTrigger value="preview">Preview Tables</TabsTrigger>
+            <TabsTrigger value="groups">Group Generator</TabsTrigger>
             <TabsTrigger value="teaching">Teaching Assignments</TabsTrigger>
             <TabsTrigger value="examiner">Examiner Board</TabsTrigger>
           </TabsList>
@@ -1408,6 +1439,61 @@ export default function AdminClassesPage() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="groups" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Generate Groups</CardTitle>
+                <CardDescription>
+                  Chọn class rồi bấm Generate để tạo đủ 6 nhóm mặc định.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <Select
+                    value={selectedGroupGeneratorClassId || undefined}
+                    onValueChange={(value) =>
+                      setSelectedGroupGeneratorClassId(value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class to generate groups" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {semesterClasses.map((classItem) => (
+                        <SelectItem key={classItem.id} value={classItem.id}>
+                          {classItem.code} - {classItem.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={() =>
+                      selectedGroupGeneratorClassId
+                        ? generateGroupsForClass(selectedGroupGeneratorClassId)
+                        : null
+                    }
+                    disabled={
+                      !selectedGroupGeneratorClassId ||
+                      generatingGroupsClassId !== null
+                    }
+                  >
+                    {generatingGroupsClassId ===
+                      selectedGroupGeneratorClassId && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Generate 6 Groups
+                  </Button>
+                </div>
+
+                <p className="text-sm text-muted-foreground">
+                  Nếu class đã có nhóm, hệ thống chỉ tạo phần còn thiếu để đủ
+                  tổng 6 nhóm.
+                </p>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="teaching">
