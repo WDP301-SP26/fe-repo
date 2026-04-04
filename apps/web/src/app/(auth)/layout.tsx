@@ -3,9 +3,5 @@ interface MarketingLayoutProps {
 }
 
 export default async function Layout({ children }: MarketingLayoutProps) {
-  return (
-    <main className="flex flex-col items-center justify-center h-screen">
-      {children}
-    </main>
-  );
+  return <main className="min-h-screen w-full">{children}</main>;
 }

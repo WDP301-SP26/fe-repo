@@ -266,6 +266,19 @@ export const classAPI = {
 
 // Group API methods
 export const groupAPI = {
+  createGroup: (data: {
+    class_id: string;
+    name: string;
+    project_name?: string;
+    description?: string;
+    semester?: string;
+    github_repo_url?: string;
+    jira_project_key?: string;
+  }) =>
+    fetchAPI<any>('/api/groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   getGroupDetails: (groupId: string) => fetchAPI<any>(`/api/groups/${groupId}`),
   getMyGroups: () => fetchAPI<any>('/api/groups'),
   getGroupsByClass: (classId: string) =>
@@ -276,6 +289,10 @@ export const groupAPI = {
     fetchAPI<any>(`/api/groups/${groupId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+  deleteGroup: (groupId: string) =>
+    fetchAPI<void>(`/api/groups/${groupId}`, {
+      method: 'DELETE',
     }),
   getGroupRepos: (groupId: string) =>
     fetchAPI<any[]>(`/api/groups/${groupId}/repos`),
@@ -444,7 +461,7 @@ export interface ReviewMilestoneInfo {
     | 'PROGRESS_TRACKING'
     | 'REVIEW_2'
     | 'REVIEW_3'
-    | 'FINAL_PRESENTATION';
+    | 'FINAL_SCORE';
   label: string;
   week_start: number;
   week_end: number;
@@ -752,6 +769,24 @@ export const adminSemesterAPI = {
     fetchAPI<void>(`/api/admin/semesters/${semesterId}/classes/${classId}`, {
       method: 'DELETE',
     }),
+  generateClassGroups: (
+    semesterId: string,
+    classId: string,
+    group_count?: number,
+  ) =>
+    fetchAPI<{
+      class_id: string;
+      class_code: string;
+      desired_group_count: number;
+      existing_group_count: number;
+      created_group_count: number;
+    }>(
+      `/api/admin/semesters/${semesterId}/classes/${classId}/generate-groups`,
+      {
+        method: 'POST',
+        body: JSON.stringify(group_count ? { group_count } : {}),
+      },
+    ),
   importWorkbook: (
     semesterId: string,
     file: File,

@@ -35,6 +35,7 @@ interface LecturerReviewQuickPanelProps {
   summary?: LecturerReviewSummary;
   isLoading: boolean;
   onSaved?: () => void;
+  classId?: string;
 }
 
 function toDraft(summary?: LecturerReviewSummary): DraftState {
@@ -60,6 +61,7 @@ export function LecturerReviewQuickPanel({
   summary,
   isLoading,
   onSaved,
+  classId,
 }: LecturerReviewQuickPanelProps) {
   const [drafts, setDrafts] = useState<DraftState>(() => toDraft(summary));
   const [isPublishing, setIsPublishing] = useState(false);
@@ -146,6 +148,7 @@ export function LecturerReviewQuickPanel({
     try {
       const result = await semesterAPI.publishMilestoneReviews({
         milestone_code: summary.milestone.code,
+        class_id: classId,
       });
       toast.success(
         result.updated_count > 0
@@ -422,7 +425,7 @@ export function LecturerReviewQuickPanel({
 
                     <div className="mt-3 flex items-center justify-between gap-3">
                       <div className="text-sm text-muted-foreground">
-                        Current total:{' '}
+                        Current average (DTB):{' '}
                         <span className="font-semibold text-foreground">
                           {group.scores.total_score ?? '-'}
                         </span>
