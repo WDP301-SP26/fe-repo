@@ -26,6 +26,20 @@ Modules:
 - Reports
 - Semester Week Governance (10-week timeline + checkpoints)
 
+## Kịch bản mở đầu demo (student-only)
+
+Trình tự nói khuyến nghị:
+
+1. Chào hội đồng và Dev Samurai team.
+2. Giới thiệu bản thân (speaker tự trình bày ngắn).
+3. Nêu bối cảnh dự án SWP391 và pain points khi quản lý Jira/GitHub thủ công.
+4. Nêu stack kỹ thuật trước khi thao tác:
+   - Frontend: React (Next.js) + TypeScript.
+   - Backend: Node.js (NestJS) + PostgreSQL.
+   - UI/CSS: Tailwind CSS + shadcn/ui.
+5. Chốt phạm vi demo hôm nay: chỉ role Student.
+6. Bắt đầu live demo theo flow student, dừng ở màn hình tạo task và kéo task sang Done để đồng bộ Jira status.
+
 ---
 
 ## 2. Bảy luồng chính
@@ -86,19 +100,45 @@ Modules:
 
 ## Luồng 4: Liên kết Jira và đồng bộ task
 
-**Mục tiêu:** Gắn Jira project vào group để lấy task/status.
+**Mục tiêu:** Dùng role Student để demo API Jira theo luồng hiện tại và dừng ở bước tạo task có phản hồi Jira.
 
-### Happy case
+### Kịch bản demo role Student (đến bước tạo Jira task)
 
-1. User connect Jira account.
-2. Chọn Jira project key và link vào group.
-3. Hệ thống xác nhận linked.
-4. Dữ liệu task của Jira được dùng cho analytics/report.
+Điều kiện đầu vào:
+
+1. Student đã link thành công GitHub account.
+2. Student đã link thành công Jira account.
+3. Student thuộc nhóm có quyền tạo task (ưu tiên Team Leader để demo mượt).
+
+Các bước demo:
+
+1. Student đăng nhập.
+2. Student join class.
+3. Student mở class đã join.
+4. Student join group.
+5. Student chọn Jira project cho group (set jira_project_key ở group).
+6. Student vào màn hình My Tasks.
+7. Chọn đúng group vừa gắn Jira key.
+8. Nhập task title, optional description, rồi bấm Create Task.
+9. Kéo task card từ cột To Do sang cột Done.
+10. Hệ thống gọi update status và đồng bộ trạng thái Done sang Jira.
+
+Điểm dừng demo:
+
+1. Hiển thị được jira_sync_status.
+2. Nếu thành công, hiển thị jira_issue_key (ví dụ ABC-123).
+3. Kéo task sang Done và xác nhận trạng thái task/Jira đã đổi theo.
+4. Không cần demo sâu hơn sang report hoặc board timeline.
+
+Kỳ vọng phản hồi API sau bước tạo task:
+
+1. Thành công đầy đủ: jira_sync_status = SUCCESS và có jira_issue_key.
+2. Có fallback: jira_sync_status = SKIPPED hoặc FAILED, vẫn tạo task local thành công và có lý do ở jira_sync_reason.
 
 ### Trạng thái triển khai
 
 - **Đã triển khai:** Có.
-- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE + BE 100% cho demo** (đã harden validate Jira project key, chuẩn hóa mã lỗi integration, warning/fallback dữ liệu thiếu cho report).
+- **Đã hoàn thiện hết chưa:** **Hoàn thiện FE + BE cho demo Student flow đến bước tạo Jira task** (đã có link account, link project key theo group, create task + trả trạng thái jira_sync_status/jira_issue_key).
 
 ---
 

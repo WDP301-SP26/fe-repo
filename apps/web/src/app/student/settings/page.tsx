@@ -8,7 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { authAPI, fetchAPI } from '@/lib/api';
+import { Input } from '@/components/ui/input';
+import { authAPI, fetchAPI, taskAPI, type TaskItem } from '@/lib/api';
+import { isAPIError } from '@/lib/api-error';
 import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -21,7 +23,7 @@ import {
   Unlink,
   User,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 interface LinkedAccount {
@@ -31,9 +33,25 @@ interface LinkedAccount {
   created_at: string;
 }
 
+interface StudentGroupOption {
+  id: string;
+  name: string;
+  project_name?: string | null;
+  jira_project_key?: string | null;
+  my_role_in_group?: string | null;
+}
+
 export default function StudentSettingsPage() {
   const { user } = useAuthStore();
   const [unlinking, setUnlinking] = useState<string | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [taskTitle, setTaskTitle] = useState('Jira sync smoke test task');
+  const [taskDescription, setTaskDescription] = useState(
+    'Created from Student Settings page to verify Jira sync on web.',
+  );
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [taskCreateError, setTaskCreateError] = useState<string | null>(null);
+  const [createdTask, setCreatedTask] = useState<TaskItem | null>(null);
 
   const {
     data: linkedAccounts,
@@ -42,6 +60,35 @@ export default function StudentSettingsPage() {
   } = useSWR<LinkedAccount[]>('/api/auth/linked-accounts', () =>
     fetchAPI<LinkedAccount[]>('/api/auth/linked-accounts'),
   );
+
+  const { data: myGroupsResponse, isLoading: loadingGroups } = useSWR(
+    user ? '/api/groups' : null,
+    () => fetchAPI<{ data: StudentGroupOption[] }>('/api/groups'),
+  );
+
+  const myGroups = useMemo<StudentGroupOption[]>(() => {
+    const payload = myGroupsResponse as
+      | { data?: StudentGroupOption[] }
+      | StudentGroupOption[]
+      | undefined;
+    if (Array.isArray(payload)) {
+      return payload;
+    }
+
+    return payload?.data ?? [];
+  }, [myGroupsResponse]);
+
+  useEffect(() => {
+    if (selectedGroupId || myGroups.length === 0) {
+      return;
+    }
+
+    const preferredGroup =
+      myGroups.find(
+        (group) => (group.my_role_in_group || '').toUpperCase() === 'LEADER',
+      ) || myGroups[0];
+    setSelectedGroupId(preferredGroup.id);
+  }, [myGroups, selectedGroupId]);
 
   const apiUrl = getApiBaseUrl();
   const frontendUrl = getFrontendBaseUrl();
@@ -68,6 +115,39 @@ export default function StudentSettingsPage() {
 
   const githubAccount = linkedAccounts?.find((a) => a.provider === 'GITHUB');
   const jiraAccount = linkedAccounts?.find((a) => a.provider === 'JIRA');
+  const selectedGroup =
+    myGroups.find((group) => group.id === selectedGroupId) || null;
+
+  const handleCreateSmokeTask = async () => {
+    if (!selectedGroupId || !taskTitle.trim()) {
+      return;
+    }
+
+    setIsCreatingTask(true);
+    setTaskCreateError(null);
+    setCreatedTask(null);
+    try {
+      const response = await taskAPI.createTask({
+        group_id: selectedGroupId,
+        title: taskTitle.trim(),
+        description: taskDescription.trim() || undefined,
+        status: 'TODO',
+        priority: 'MEDIUM',
+      });
+      setCreatedTask(response);
+    } catch (error) {
+      if (isAPIError(error)) {
+        const prefix = error.code ? `[${error.code}] ` : '';
+        setTaskCreateError(`${prefix}${error.message}`);
+      } else {
+        setTaskCreateError(
+          error instanceof Error ? error.message : 'Failed to create task.',
+        );
+      }
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -252,6 +332,115 @@ export default function StudentSettingsPage() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Task + Jira Smoke Test (Web)</CardTitle>
+          <CardDescription>
+            Quick test to create a student task and verify Jira sync response on
+            web.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-md border bg-muted/20 p-3 text-sm text-muted-foreground">
+            Only group leaders can create tasks. If Jira is linked to the
+            selected group, backend will return Jira sync status and issue key.
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Group</label>
+            <select
+              value={selectedGroupId}
+              onChange={(event) => setSelectedGroupId(event.target.value)}
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              disabled={loadingGroups || myGroups.length === 0}
+            >
+              {myGroups.length === 0 ? (
+                <option value="">No joined groups</option>
+              ) : null}
+              {myGroups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                  {group.jira_project_key ? ` (${group.jira_project_key})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Task title</label>
+              <Input
+                value={taskTitle}
+                onChange={(event) => setTaskTitle(event.target.value)}
+                placeholder="Enter task title"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Group role</label>
+              <div className="rounded-md border bg-background px-3 py-2 text-sm">
+                {selectedGroup?.my_role_in_group || 'N/A'}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Description</label>
+            <textarea
+              value={taskDescription}
+              onChange={(event) => setTaskDescription(event.target.value)}
+              placeholder="Optional task description"
+              className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+
+          <Button
+            onClick={handleCreateSmokeTask}
+            disabled={
+              isCreatingTask ||
+              !selectedGroupId ||
+              taskTitle.trim().length === 0
+            }
+          >
+            {isCreatingTask ? 'Creating task...' : 'Create test task'}
+          </Button>
+
+          {selectedGroup ? (
+            <p className="text-xs text-muted-foreground">
+              Selected group Jira key:{' '}
+              <span className="font-semibold text-foreground">
+                {selectedGroup.jira_project_key || 'Not linked'}
+              </span>
+            </p>
+          ) : null}
+
+          {taskCreateError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+              {taskCreateError}
+            </div>
+          ) : null}
+
+          {createdTask ? (
+            <div className="space-y-2 rounded-md border border-green-500/30 bg-green-500/5 p-3 text-sm">
+              <div>
+                Task created: <strong>{createdTask.title}</strong>
+              </div>
+              <div>
+                Jira issue key:{' '}
+                <strong>{createdTask.jira_issue_key || 'Not generated'}</strong>
+              </div>
+              <div>
+                Jira sync status:{' '}
+                <strong>{createdTask.jira_sync_status}</strong>
+              </div>
+              <div>
+                Jira sync reason:{' '}
+                <strong>{createdTask.jira_sync_reason || 'N/A'}</strong>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>
