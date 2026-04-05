@@ -465,6 +465,26 @@ export interface ReviewMilestoneInfo {
   label: string;
   week_start: number;
   week_end: number;
+  description?: string | null;
+  checkpoint_number?: number;
+}
+
+export interface ClassCheckpointConfig {
+  checkpoint_number: number;
+  milestone_code: ReviewMilestoneInfo['code'];
+  deadline_week: number;
+  description: string | null;
+}
+
+export interface ClassCheckpointsResponse {
+  class_id: string;
+  semester: {
+    id: string;
+    code: string;
+    name: string;
+    current_week: number;
+  };
+  checkpoints: ClassCheckpointConfig[];
 }
 
 export interface GroupReviewSummary {
@@ -494,7 +514,6 @@ export interface GroupReviewSummary {
 
 export interface LecturerReviewSummary {
   semester: SemesterInfo | null;
-  milestone: ReviewMilestoneInfo | null;
   summary: {
     classes_total: number;
     groups_total: number;
@@ -506,13 +525,14 @@ export interface LecturerReviewSummary {
     class_id: string;
     class_code: string;
     class_name: string;
+    active_checkpoint: ReviewMilestoneInfo | null;
+    checkpoint_configs: ClassCheckpointConfig[];
     groups: GroupReviewSummary[];
   }>;
 }
 
 export interface StudentReviewStatus {
   semester: SemesterInfo | null;
-  milestone: ReviewMilestoneInfo | null;
   groups: Array<
     {
       class_id: string;
@@ -643,11 +663,13 @@ export const semesterAPI = {
     fetchAPI<StudentWeeklyWarnings>(
       '/api/semesters/current/compliance/student-warning',
     ),
-  getCurrentReviewMilestone: () =>
+  getCurrentReviewMilestone: (classId?: string) =>
     fetchAPI<{
       semester: SemesterInfo | null;
       milestone: ReviewMilestoneInfo | null;
-    }>('/api/semesters/current/review-milestone'),
+    }>(
+      `/api/semesters/current/review-milestone${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`,
+    ),
   getLecturerReviewSummary: (classId?: string) =>
     fetchAPI<LecturerReviewSummary>(
       `/api/semesters/current/reviews/lecturer-summary${classId ? `?classId=${encodeURIComponent(classId)}` : ''}`,
@@ -696,6 +718,23 @@ export const semesterAPI = {
         body: JSON.stringify({ current_week }),
       },
     ),
+};
+
+export const classCheckpointAPI = {
+  getCheckpoints: (classId: string) =>
+    fetchAPI<ClassCheckpointsResponse>(`/api/classes/${classId}/checkpoints`),
+  upsertCheckpoints: (
+    classId: string,
+    checkpoints: Array<{
+      checkpoint_number: number;
+      deadline_week: number;
+      description?: string;
+    }>,
+  ) =>
+    fetchAPI<ClassCheckpointsResponse>(`/api/classes/${classId}/checkpoints`, {
+      method: 'PUT',
+      body: JSON.stringify({ checkpoints }),
+    }),
 };
 
 export const adminSemesterAPI = {

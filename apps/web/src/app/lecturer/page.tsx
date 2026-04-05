@@ -97,21 +97,27 @@ export default function LecturerDashboardPage() {
               <div className="text-2xl font-bold text-muted-foreground">
                 ...
               </div>
-            ) : reviewSummary?.milestone ? (
-              <>
-                <div className="text-2xl font-bold">
-                  {reviewSummary.milestone.label}
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Week {reviewSummary.milestone.week_start}-
-                  {reviewSummary.milestone.week_end}
-                </p>
-              </>
+            ) : reviewSummary?.classes.some((c) => c.active_checkpoint) ? (
+              <div className="space-y-2">
+                {reviewSummary.classes
+                  .filter((c) => c.active_checkpoint)
+                  .map((c) => (
+                    <div key={c.class_id}>
+                      <div className="text-lg font-bold">
+                        {c.class_code}: {c.active_checkpoint!.label}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Week {c.active_checkpoint!.week_start}-
+                        {c.active_checkpoint!.week_end}
+                      </p>
+                    </div>
+                  ))}
+              </div>
             ) : (
               <>
-                <div className="text-2xl font-bold">No active review</div>
+                <div className="text-2xl font-bold">No active checkpoint</div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Grouped review windows start from week 3.
+                  Checkpoints are configured per class.
                 </p>
               </>
             )}

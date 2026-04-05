@@ -1,5 +1,6 @@
 'use client';
 
+import { CheckpointConfigPanel } from '@/components/checkpoint-config-panel';
 import { LecturerReviewQuickPanel } from '@/components/lecturer-review-quick-panel';
 import {
   AlertDialog,
@@ -189,6 +190,8 @@ export default function ClassDetailsPage() {
           Create Group
         </Button>
       </div>
+
+      <CheckpointConfigPanel classId={classId} />
 
       <Dialog
         open={isCreateDialogOpen}

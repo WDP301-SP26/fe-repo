@@ -64,7 +64,9 @@ export function LecturerReviewQuickPanel({
   classId,
 }: LecturerReviewQuickPanelProps) {
   const [drafts, setDrafts] = useState<DraftState>(() => toDraft(summary));
-  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishingClassId, setPublishingClassId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setDrafts(toDraft(summary));
@@ -139,21 +141,22 @@ export function LecturerReviewQuickPanel({
     }
   };
 
-  const handlePublishMilestone = async () => {
-    if (!summary?.milestone) {
+  const handlePublishClass = async (classId: string) => {
+    const classItem = summary?.classes.find((c) => c.class_id === classId);
+    if (!classItem?.active_checkpoint) {
       return;
     }
 
-    setIsPublishing(true);
+    setPublishingClassId(classId);
     try {
       const result = await semesterAPI.publishMilestoneReviews({
-        milestone_code: summary.milestone.code,
+        milestone_code: classItem.active_checkpoint.code,
         class_id: classId,
       });
       toast.success(
         result.updated_count > 0
-          ? `Published ${result.updated_count} review(s) for ${summary.milestone.label}.`
-          : `No draft review found to publish for ${summary.milestone.label}.`,
+          ? `Published ${result.updated_count} review(s) for ${classItem.class_code} — ${classItem.active_checkpoint.label}.`
+          : `No draft review found to publish for ${classItem.class_code}.`,
       );
       onSaved?.();
     } catch (error) {
@@ -162,24 +165,13 @@ export function LecturerReviewQuickPanel({
           error instanceof Error ? error.message : 'Unexpected error.',
       });
     } finally {
-      setIsPublishing(false);
+      setPublishingClassId(null);
     }
   };
 
-  const hasActiveMilestone = Boolean(summary?.milestone);
-  const allGroupsReviewed = Boolean(
-    summary && summary.summary.groups_total > 0
-      ? summary.summary.reviewed_groups === summary.summary.groups_total
-      : false,
+  const hasAnyActiveMilestone = summary?.classes.some(
+    (c) => c.active_checkpoint,
   );
-  const canPublish = hasActiveMilestone && allGroupsReviewed && !isPublishing;
-  const publishBlockerMessage = !hasActiveMilestone
-    ? 'No active milestone is available to publish.'
-    : summary?.summary.groups_total === 0
-      ? 'No groups are available for this milestone.'
-      : !allGroupsReviewed
-        ? 'Review every group before publishing milestone scores.'
-        : null;
 
   if (isLoading) {
     return (
@@ -194,15 +186,15 @@ export function LecturerReviewQuickPanel({
     );
   }
 
-  if (!summary?.milestone) {
+  if (!hasAnyActiveMilestone) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Review Snapshot</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          No grouped review milestone is active yet. Review windows start from
-          week 3.
+          No active checkpoint for any class. Review windows are configured per
+          class in the checkpoint settings.
         </CardContent>
       </Card>
     );
@@ -211,80 +203,26 @@ export function LecturerReviewQuickPanel({
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>
-            {summary.milestone.label} - Week {summary.milestone.week_start} to{' '}
-            {summary.milestone.week_end}
-          </CardTitle>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button disabled={!canPublish}>
-                {isPublishing ? 'Publishing...' : 'Publish milestone scores'}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Publish milestone scores?</AlertDialogTitle>
-                <AlertDialogDescription className="space-y-3">
-                  <span className="block">
-                    You are about to finalize scores for{' '}
-                    <strong>
-                      {summary.milestone.label} ({summary.milestone.code})
-                    </strong>
-                    .
-                  </span>
-                  <span className="block">
-                    Reviewed groups:{' '}
-                    <strong>{summary.summary.reviewed_groups}</strong> /{' '}
-                    {summary.summary.groups_total}
-                  </span>
-                  <span className="block">
-                    Published scores are treated as a milestone finalize action
-                    for the current review window.
-                  </span>
-                  {publishBlockerMessage ? (
-                    <span className="block text-destructive">
-                      {publishBlockerMessage}
-                    </span>
-                  ) : null}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handlePublishMilestone}
-                  disabled={!canPublish}
-                >
-                  Confirm publish
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-        {publishBlockerMessage ? (
-          <p className="text-sm text-muted-foreground">
-            {publishBlockerMessage}
-          </p>
-        ) : null}
+        <CardTitle>Review Snapshot</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 md:grid-cols-4">
           <div className="rounded-md border p-3">
             <div className="text-xs text-muted-foreground">Classes</div>
             <div className="text-2xl font-semibold">
-              {summary.summary.classes_total}
+              {summary?.summary.classes_total ?? 0}
             </div>
           </div>
           <div className="rounded-md border p-3">
             <div className="text-xs text-muted-foreground">Groups</div>
             <div className="text-2xl font-semibold">
-              {summary.summary.groups_total}
+              {summary?.summary.groups_total ?? 0}
             </div>
           </div>
           <div className="rounded-md border p-3">
             <div className="text-xs text-muted-foreground">Reviewed</div>
             <div className="text-2xl font-semibold">
-              {summary.summary.reviewed_groups}
+              {summary?.summary.reviewed_groups ?? 0}
             </div>
           </div>
           <div className="rounded-md border p-3">
@@ -292,163 +230,251 @@ export function LecturerReviewQuickPanel({
               Missing Evidence
             </div>
             <div className="text-2xl font-semibold">
-              {summary.summary.groups_missing_task_evidence +
-                summary.summary.groups_missing_commit_evidence}
+              {(summary?.summary.groups_missing_task_evidence ?? 0) +
+                (summary?.summary.groups_missing_commit_evidence ?? 0)}
             </div>
           </div>
         </div>
 
-        {summary.classes.map((classItem) => (
-          <div key={classItem.class_id} className="space-y-3">
-            <div>
-              <h3 className="text-base font-semibold">
-                {classItem.class_code} - {classItem.class_name}
-              </h3>
-            </div>
+        {summary?.classes.map((classItem) => {
+          const checkpoint = classItem.active_checkpoint;
+          const classGroups = classItem.groups;
+          const classReviewedCount = classGroups.filter(
+            (g) => g.review_status === 'REVIEWED',
+          ).length;
+          const allClassReviewed =
+            classGroups.length > 0 && classReviewedCount === classGroups.length;
+          const isPublishing = publishingClassId === classItem.class_id;
+          const canPublishClass =
+            !!checkpoint && allClassReviewed && !isPublishing;
+          const classPublishBlocker = !checkpoint
+            ? 'No active checkpoint for this class.'
+            : classGroups.length === 0
+              ? 'No groups in this class.'
+              : !allClassReviewed
+                ? 'Review every group before publishing.'
+                : null;
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              {classItem.groups.map((group) => {
-                const draft = drafts[group.group_id] ?? {
-                  task_progress_score: '',
-                  commit_contribution_score: '',
-                  review_milestone_score: '',
-                  lecturer_note: '',
-                };
+          return (
+            <div key={classItem.class_id} className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">
+                    {classItem.class_code} - {classItem.class_name}
+                  </h3>
+                  {checkpoint && (
+                    <p className="text-sm text-muted-foreground">
+                      {checkpoint.label} — Week {checkpoint.week_start} to{' '}
+                      {checkpoint.week_end}
+                      {checkpoint.description && (
+                        <span className="block mt-1 text-xs italic">
+                          Requirements: {checkpoint.description}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {!checkpoint && (
+                    <p className="text-xs text-muted-foreground">
+                      No active checkpoint this week.
+                    </p>
+                  )}
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" disabled={!canPublishClass}>
+                      {isPublishing ? 'Publishing...' : 'Publish'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Publish scores for {classItem.class_code}?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="space-y-3">
+                        <span className="block">
+                          Finalize scores for{' '}
+                          <strong>
+                            {checkpoint?.label} ({checkpoint?.code})
+                          </strong>{' '}
+                          in class {classItem.class_code}.
+                        </span>
+                        <span className="block">
+                          Reviewed: <strong>{classReviewedCount}</strong> /{' '}
+                          {classGroups.length} groups
+                        </span>
+                        {classPublishBlocker && (
+                          <span className="block text-destructive">
+                            {classPublishBlocker}
+                          </span>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handlePublishClass(classItem.class_id)}
+                        disabled={!canPublishClass}
+                      >
+                        Confirm publish
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
 
-                return (
-                  <div key={group.group_id} className="rounded-md border p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <div className="font-semibold">{group.group_name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {group.topic_name || 'No finalized topic yet'}
+              {classPublishBlocker && checkpoint && (
+                <p className="text-sm text-muted-foreground">
+                  {classPublishBlocker}
+                </p>
+              )}
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                {classGroups.map((group) => {
+                  const draft = drafts[group.group_id] ?? {
+                    task_progress_score: '',
+                    commit_contribution_score: '',
+                    review_milestone_score: '',
+                    lecturer_note: '',
+                  };
+
+                  return (
+                    <div key={group.group_id} className="rounded-md border p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="font-semibold">
+                            {group.group_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {group.topic_name || 'No finalized topic yet'}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge
+                            variant={
+                              group.review_status === 'REVIEWED'
+                                ? 'default'
+                                : 'secondary'
+                            }
+                          >
+                            {group.review_status}
+                          </Badge>
+                          <Badge
+                            variant={group.is_published ? 'default' : 'outline'}
+                          >
+                            {group.is_published ? 'PUBLISHED' : 'DRAFT'}
+                          </Badge>
+                          {group.warnings.map((warning) => (
+                            <Badge key={warning} variant="destructive">
+                              {warning}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge
-                          variant={
-                            group.review_status === 'REVIEWED'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                        >
-                          {group.review_status}
-                        </Badge>
-                        <Badge
-                          variant={group.is_published ? 'default' : 'outline'}
-                        >
-                          {group.is_published ? 'PUBLISHED' : 'DRAFT'}
-                        </Badge>
-                        {group.warnings.map((warning) => (
-                          <Badge key={warning} variant="destructive">
-                            {warning}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
 
-                    <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
-                      <div>
-                        Task snapshot: {group.snapshot.task_done}/
-                        {group.snapshot.task_total} done
+                      <div className="mt-3 grid gap-2 text-xs text-muted-foreground">
+                        <div>
+                          Task snapshot: {group.snapshot.task_done}/
+                          {group.snapshot.task_total} done
+                        </div>
+                        <div>
+                          Commit snapshot:{' '}
+                          {group.snapshot.commit_total ?? 'N/A'} commits /{' '}
+                          {group.snapshot.commit_contributors ?? 'N/A'}{' '}
+                          contributors
+                        </div>
+                        {group.snapshot.repository ? (
+                          <div>Repo: {group.snapshot.repository}</div>
+                        ) : null}
                       </div>
-                      <div>
-                        Commit snapshot: {group.snapshot.commit_total ?? 'N/A'}{' '}
-                        commits / {group.snapshot.commit_contributors ?? 'N/A'}{' '}
-                        contributors
+
+                      <div className="mt-4 grid gap-3 md:grid-cols-3">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="10"
+                          step="0.5"
+                          placeholder="Task score"
+                          value={draft.task_progress_score}
+                          onChange={(event) =>
+                            handleChange(
+                              group.group_id,
+                              'task_progress_score',
+                              event.target.value,
+                            )
+                          }
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          max="10"
+                          step="0.5"
+                          placeholder="Commit score"
+                          value={draft.commit_contribution_score}
+                          onChange={(event) =>
+                            handleChange(
+                              group.group_id,
+                              'commit_contribution_score',
+                              event.target.value,
+                            )
+                          }
+                        />
+                        <Input
+                          type="number"
+                          min="0"
+                          max="10"
+                          step="0.5"
+                          placeholder="Review score"
+                          value={draft.review_milestone_score}
+                          onChange={(event) =>
+                            handleChange(
+                              group.group_id,
+                              'review_milestone_score',
+                              event.target.value,
+                            )
+                          }
+                        />
                       </div>
-                      {group.snapshot.repository ? (
-                        <div>Repo: {group.snapshot.repository}</div>
+
+                      <textarea
+                        className="mt-3 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        placeholder="Quick lecturer note"
+                        value={draft.lecturer_note}
+                        onChange={(event) =>
+                          handleChange(
+                            group.group_id,
+                            'lecturer_note',
+                            event.target.value,
+                          )
+                        }
+                      />
+
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <div className="text-sm text-muted-foreground">
+                          Current total:{' '}
+                          <span className="font-semibold text-foreground">
+                            {group.scores.total_score ?? '-'}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={() => handleSave(group.group_id)}
+                          disabled={draft.isSaving}
+                        >
+                          {draft.isSaving ? 'Saving...' : 'Save quick review'}
+                        </Button>
+                      </div>
+
+                      {draft.error ? (
+                        <div className="mt-2 text-sm text-destructive">
+                          {draft.error}
+                        </div>
                       ) : null}
                     </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        placeholder="Task score"
-                        value={draft.task_progress_score}
-                        onChange={(event) =>
-                          handleChange(
-                            group.group_id,
-                            'task_progress_score',
-                            event.target.value,
-                          )
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        placeholder="Commit score"
-                        value={draft.commit_contribution_score}
-                        onChange={(event) =>
-                          handleChange(
-                            group.group_id,
-                            'commit_contribution_score',
-                            event.target.value,
-                          )
-                        }
-                      />
-                      <Input
-                        type="number"
-                        min="0"
-                        max="10"
-                        step="0.5"
-                        placeholder="Review score"
-                        value={draft.review_milestone_score}
-                        onChange={(event) =>
-                          handleChange(
-                            group.group_id,
-                            'review_milestone_score',
-                            event.target.value,
-                          )
-                        }
-                      />
-                    </div>
-
-                    <textarea
-                      className="mt-3 min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
-                      placeholder="Quick lecturer note"
-                      value={draft.lecturer_note}
-                      onChange={(event) =>
-                        handleChange(
-                          group.group_id,
-                          'lecturer_note',
-                          event.target.value,
-                        )
-                      }
-                    />
-
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <div className="text-sm text-muted-foreground">
-                        Current average (DTB):{' '}
-                        <span className="font-semibold text-foreground">
-                          {group.scores.total_score ?? '-'}
-                        </span>
-                      </div>
-                      <Button
-                        onClick={() => handleSave(group.group_id)}
-                        disabled={draft.isSaving}
-                      >
-                        {draft.isSaving ? 'Saving...' : 'Save quick review'}
-                      </Button>
-                    </div>
-
-                    {draft.error ? (
-                      <div className="mt-2 text-sm text-destructive">
-                        {draft.error}
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </CardContent>
     </Card>
   );
