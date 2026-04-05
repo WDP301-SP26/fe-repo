@@ -375,6 +375,101 @@ export const jiraAPI = {
     }),
 };
 
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'BLOCKED';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface TaskItem {
+  id: string;
+  key: string | null;
+  jira_issue_key: string | null;
+  group_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assignee_id: string | null;
+  assignee_name: string | null;
+  jira_sync_status: 'SUCCESS' | 'FAILED' | 'SKIPPED';
+  jira_sync_reason: string | null;
+  due_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskListResponse {
+  data: TaskItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
+}
+
+export const taskAPI = {
+  listTasks: (params?: {
+    group_id?: string;
+    status?: TaskStatus;
+    assignee_id?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const searchParams = new URLSearchParams();
+
+    if (params?.group_id) {
+      searchParams.set('group_id', params.group_id);
+    }
+    if (params?.status) {
+      searchParams.set('status', params.status);
+    }
+    if (params?.assignee_id) {
+      searchParams.set('assignee_id', params.assignee_id);
+    }
+    if (params?.search) {
+      searchParams.set('search', params.search);
+    }
+    if (params?.page) {
+      searchParams.set('page', String(params.page));
+    }
+    if (params?.limit) {
+      searchParams.set('limit', String(params.limit));
+    }
+
+    const query = searchParams.toString();
+    const endpoint = query ? `/api/tasks?${query}` : '/api/tasks';
+    return fetchAPI<TaskListResponse>(endpoint);
+  },
+  createTask: (data: {
+    group_id: string;
+    title: string;
+    description?: string;
+    status?: TaskStatus;
+    priority?: TaskPriority;
+    assignee_id?: string;
+    due_at?: string;
+  }) =>
+    fetchAPI<TaskItem>('/api/tasks', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateTask: (
+    taskId: string,
+    data: {
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      assignee_id?: string | null;
+      title?: string;
+      description?: string;
+      due_at?: string | null;
+    },
+  ) =>
+    fetchAPI<TaskItem>(`/api/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+};
+
 export interface SemesterInfo {
   id: string;
   code: string;

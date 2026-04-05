@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FolderGit2,
   Home,
+  KanbanSquare,
   MessageSquare,
   Settings,
   Users,
@@ -22,6 +23,7 @@ export const studentMenuItems: MenuItem[] = [
   { title: 'Overview', url: '/student', icon: Home },
   { title: 'My Groups', url: '/student/groups', icon: Users },
   { title: 'My Projects', url: '/student/projects', icon: FolderGit2 },
+  { title: 'My Tasks', url: '/student/tasks', icon: KanbanSquare },
   { title: 'Settings', url: '/student/settings', icon: Settings },
 ];
 
