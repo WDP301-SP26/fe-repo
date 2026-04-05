@@ -124,15 +124,8 @@ export default function StudentDashboardPage() {
           <CardTitle>Current Review Milestone</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {reviewStatus?.milestone ? (
+          {reviewStatus?.groups.some((g) => g.milestone) ? (
             <>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge>{reviewStatus.milestone.label}</Badge>
-                <span className="text-sm text-muted-foreground">
-                  Week {reviewStatus.milestone.week_start}-
-                  {reviewStatus.milestone.week_end}
-                </span>
-              </div>
               {reviewStatus.groups.length ? (
                 <div className="space-y-3">
                   {reviewStatus.groups.map((group) => (
@@ -144,6 +137,9 @@ export default function StudentDashboardPage() {
                         <span className="font-medium">
                           {group.class_code} - {group.group_name}
                         </span>
+                        {group.milestone && (
+                          <Badge>{group.milestone.label}</Badge>
+                        )}
                         <Badge
                           variant={
                             group.review_status === 'REVIEWED'
@@ -154,6 +150,17 @@ export default function StudentDashboardPage() {
                           {group.review_status}
                         </Badge>
                       </div>
+                      {group.milestone && (
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Week {group.milestone.week_start}-
+                          {group.milestone.week_end}
+                          {group.milestone.description && (
+                            <span className="block mt-1 italic">
+                              {group.milestone.description}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="mt-2 text-sm text-muted-foreground">
                         {group.topic_name || 'Topic not finalized yet'}
                       </div>
@@ -182,8 +189,7 @@ export default function StudentDashboardPage() {
             </>
           ) : (
             <div className="text-sm text-muted-foreground">
-              No grouped review milestone is active yet. Review checkpoints
-              begin from week 3.
+              No active checkpoint for your groups this week.
             </div>
           )}
         </CardContent>
@@ -207,6 +213,11 @@ export default function StudentDashboardPage() {
                     Week {item.milestone.week_start}-{item.milestone.week_end}
                   </span>
                 </div>
+                {item.milestone.description && (
+                  <p className="mt-1 text-xs italic text-muted-foreground">
+                    {item.milestone.description}
+                  </p>
+                )}
 
                 <div className="mt-3 space-y-2">
                   {item.groups.map((group) => (
