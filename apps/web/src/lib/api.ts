@@ -283,8 +283,82 @@ export const groupAPI = {
   getMyGroups: () => fetchAPI<any>('/api/groups'),
   getGroupsByClass: (classId: string) =>
     fetchAPI<any[]>(`/api/groups/class/${classId}`),
+  getGroupMembers: (groupId: string) =>
+    fetchAPI<
+      Array<{
+        id: string;
+        full_name: string;
+        email: string;
+        avatar_url?: string;
+        role_in_group: 'LEADER' | 'MEMBER' | 'MENTOR';
+        joined_at: string;
+      }>
+    >(`/api/groups/${groupId}/members`),
+  addMember: (
+    groupId: string,
+    data: {
+      user_id: string;
+      role_in_group?: 'LEADER' | 'MEMBER' | 'MENTOR';
+    },
+  ) =>
+    fetchAPI<any[]>(`/api/groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   joinGroup: (groupId: string) =>
     fetchAPI<any>(`/api/groups/${groupId}/join`, { method: 'POST' }),
+  updateMember: (
+    groupId: string,
+    userId: string,
+    data: { role_in_group: 'LEADER' | 'MEMBER' },
+  ) =>
+    fetchAPI<any[]>(`/api/groups/${groupId}/members/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  removeMember: (groupId: string, userId: string) =>
+    fetchAPI<void>(`/api/groups/${groupId}/members/${userId}`, {
+      method: 'DELETE',
+    }),
+  reassignMembers: (
+    sourceGroupId: string,
+    data: {
+      assignments: Array<{ user_id: string; target_group_id: string }>;
+      archive_source?: boolean;
+    },
+  ) =>
+    fetchAPI<{
+      message: string;
+      archived: boolean;
+      reassigned_count: number;
+      remaining_count: number;
+    }>(`/api/groups/${sourceGroupId}/reassign-members`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateClassMemberCapacity: (
+    classId: string,
+    data: { max_students_per_group: number },
+  ) =>
+    fetchAPI<{
+      class_id: string;
+      previous_max_students_per_group: number;
+      max_students_per_group: number;
+    }>(`/api/groups/class/${classId}/member-capacity`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  getUngroupedStudentsByClass: (classId: string) =>
+    fetchAPI<{
+      class_id: string;
+      count: number;
+      students: Array<{
+        id: string;
+        student_id: string | null;
+        full_name: string | null;
+        email: string;
+      }>;
+    }>(`/api/groups/class/${classId}/ungrouped-students`),
   updateGroup: (groupId: string, data: any) =>
     fetchAPI<any>(`/api/groups/${groupId}`, {
       method: 'PATCH',

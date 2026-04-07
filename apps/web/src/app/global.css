@@ -568,8 +568,8 @@ summary svg {
   --accent: oklch(96% 0.007 247.896);
   --accent-foreground: oklch(20% 0.042 265.755);
   --destructive: oklch(64% 0.246 16.439);
-  --border: oklch(92% 0.013 255.508);
-  --input: oklch(92% 0.013 255.508);
+  --border: oklch(84% 0.018 255.508);
+  --input: oklch(84% 0.018 255.508);
   --ring: oklch(0.66 0.18 45);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -602,8 +602,8 @@ summary svg {
   --accent: oklch(0.274 0.006 286.033);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 22%);
+  --input: oklch(1 0 0 / 28%);
   --ring: oklch(0.66 0.18 45);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
