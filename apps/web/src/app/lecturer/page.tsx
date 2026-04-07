@@ -48,8 +48,7 @@ export default function LecturerDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold">Lecturer Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user?.full_name || 'Lecturer'}! Review your assigned
-            classes, groups, and milestone progress here.
+            Welcome back, {user?.full_name || 'Lecturer'}!
           </p>
         </div>
       </div>
@@ -100,15 +99,24 @@ export default function LecturerDashboardPage() {
             ) : reviewSummary?.classes.some((c) => c.active_checkpoint) ? (
               <div className="space-y-2">
                 {reviewSummary.classes
-                  .filter((c) => c.active_checkpoint)
-                  .map((c) => (
-                    <div key={c.class_id}>
+                  .flatMap((c) =>
+                    c.active_checkpoint
+                      ? [
+                          {
+                            classId: c.class_id,
+                            classCode: c.class_code,
+                            checkpoint: c.active_checkpoint,
+                          },
+                        ]
+                      : [],
+                  )
+                  .map(({ classId, classCode, checkpoint }) => (
+                    <div key={classId}>
                       <div className="text-lg font-bold">
-                        {c.class_code}: {c.active_checkpoint!.label}
+                        {classCode}: {checkpoint.label}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Week {c.active_checkpoint!.week_start}-
-                        {c.active_checkpoint!.week_end}
+                        Week {checkpoint.week_start}-{checkpoint.week_end}
                       </p>
                     </div>
                   ))}
@@ -322,12 +330,13 @@ export default function LecturerDashboardPage() {
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2">
             <a
-              href="/lecturer/groups"
+              href="/lecturer/classes"
               className="rounded-lg border p-4 text-left hover:bg-accent block"
             >
-              <h3 className="font-semibold">View Assigned Groups</h3>
+              <h3 className="font-semibold">View My Classes</h3>
               <p className="text-sm text-muted-foreground">
-                Open the groups you supervise in this semester
+                Open classes assigned to you in this semester, then drill down
+                to groups
               </p>
             </a>
             <a

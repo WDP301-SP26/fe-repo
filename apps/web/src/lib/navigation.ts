@@ -29,6 +29,7 @@ export const studentMenuItems: MenuItem[] = [
 
 export const lecturerMenuItems: MenuItem[] = [
   { title: 'Overview', url: '/lecturer', icon: Home },
+  { title: 'My Classes', url: '/lecturer/classes', icon: BookOpen },
   { title: 'My Student Groups', url: '/lecturer/groups', icon: Users2 },
   {
     title: 'Review Point Scoring',
@@ -71,6 +72,12 @@ function toTitleCase(text: string): string {
 }
 
 export function isActiveMenuItem(pathname: string, url: string): boolean {
+  const isTopLevelSection = /^\/[^/]+$/.test(url);
+
+  if (isTopLevelSection) {
+    return pathname === url;
+  }
+
   return pathname === url || pathname.startsWith(`${url}/`);
 }
 

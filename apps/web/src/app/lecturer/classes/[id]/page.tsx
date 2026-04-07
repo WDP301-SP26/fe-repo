@@ -179,9 +179,6 @@ export default function ClassDetailsPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-bold">Class Details</h1>
-            <p className="text-muted-foreground">
-              Manage the groups and students for this class.
-            </p>
           </div>
         </div>
 
