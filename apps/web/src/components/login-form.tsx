@@ -11,7 +11,7 @@ import { loginSchema, type LoginFormValues } from '@/lib/schemas/auth.schema';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, ShieldCheck } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -164,21 +164,11 @@ export function LoginForm({
                   {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
                 </Button>
               </div>
-
-              <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs text-slate-300">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-cyan-300" />
-                  Hệ thống tự động cấp quyền và điều hướng theo vai trò sau khi
-                  đăng nhập.
-                </div>
-              </div>
             </div>
           </form>
         </CardContent>
       </Card>
-      <div className="text-center text-xs text-slate-400">
-        Cần hỗ trợ tài khoản? Vui lòng liên hệ ban điều hành học phần.
-      </div>
+      <div className="text-center text-xs text-slate-400"></div>
     </div>
   );
 }

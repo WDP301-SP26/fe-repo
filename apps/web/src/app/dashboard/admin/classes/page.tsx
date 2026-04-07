@@ -717,9 +717,11 @@ export default function AdminClassesPage() {
             <p className="text-muted-foreground">
               Required columns: <code>semester_code</code>, <code>email</code>,{' '}
               <code>full_name</code>, <code>class_code</code>,{' '}
-              <code>student_id</code>. Optional column: <code>class_name</code>.
-              The row <code>semester_code</code> must match the selected
-              semester.
+              <code>student_id</code>. Optional columns: <code>class_name</code>{' '}
+              and <code>role</code>. Use <code>role=LECTURER</code> on an
+              optional lecturer row to create or reuse the lecturer and assign
+              the class in the same import. The row <code>semester_code</code>{' '}
+              must match the selected semester.
             </p>
             <Link
               href="/templates/semester-import-template.csv"
