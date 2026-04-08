@@ -387,6 +387,104 @@ export function LecturerReviewQuickPanel({
                         ) : null}
                       </div>
 
+                      {group.review_session_summary ? (
+                        <div className="mt-4 rounded-md border bg-muted/30 p-3 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="font-semibold text-foreground">
+                              Review day log
+                            </div>
+                            <div className="text-muted-foreground">
+                              {group.review_session_summary.total_sessions}{' '}
+                              sessions
+                            </div>
+                          </div>
+                          <div className="mt-2 grid gap-2 sm:grid-cols-3 text-muted-foreground">
+                            <div>
+                              Present:{' '}
+                              {group.review_session_summary.present_count}
+                            </div>
+                            <div>
+                              Contributed:{' '}
+                              {group.review_session_summary.contributor_count}
+                            </div>
+                            <div>
+                              Absent:{' '}
+                              {group.review_session_summary.absent_count}
+                            </div>
+                          </div>
+                          {group.review_sessions?.length ? (
+                            <div className="mt-3 space-y-2">
+                              {group.review_sessions.map((session) => (
+                                <div
+                                  key={session.id}
+                                  className="rounded-md border bg-background p-2"
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div className="font-medium text-foreground">
+                                      {session.title}
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      {new Date(
+                                        session.review_date,
+                                      ).toLocaleString()}
+                                    </div>
+                                  </div>
+                                  <div className="mt-1 text-muted-foreground">
+                                    {session.lecturer_note ||
+                                      'No lecturer note yet.'}
+                                  </div>
+                                  <div className="mt-2 space-y-1">
+                                    {session.participant_reports.map(
+                                      (report) => (
+                                        <div
+                                          key={report.user_id}
+                                          className="flex flex-wrap items-center gap-2 rounded-sm border border-dashed px-2 py-1"
+                                        >
+                                          <span className="font-medium text-foreground">
+                                            {report.user_name || report.user_id}
+                                          </span>
+                                          <Badge
+                                            variant={
+                                              report.present
+                                                ? 'default'
+                                                : 'secondary'
+                                            }
+                                          >
+                                            {report.present
+                                              ? 'PRESENT'
+                                              : 'ABSENT'}
+                                          </Badge>
+                                          <Badge
+                                            variant={
+                                              report.did_contribute
+                                                ? 'default'
+                                                : 'outline'
+                                            }
+                                          >
+                                            {report.did_contribute
+                                              ? 'CONTRIBUTED'
+                                              : 'NO CONTRIBUTION'}
+                                          </Badge>
+                                          {report.contribution_summary ? (
+                                            <span className="text-muted-foreground">
+                                              {report.contribution_summary}
+                                            </span>
+                                          ) : null}
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-muted-foreground">
+                              No review sessions recorded yet.
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+
                       <div className="mt-4 grid gap-3 md:grid-cols-3">
                         <Input
                           type="number"

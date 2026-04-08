@@ -625,12 +625,7 @@ export interface StudentWeeklyWarnings {
 }
 
 export interface ReviewMilestoneInfo {
-  code:
-    | 'REVIEW_1'
-    | 'PROGRESS_TRACKING'
-    | 'REVIEW_2'
-    | 'REVIEW_3'
-    | 'FINAL_SCORE';
+  code: 'REVIEW_1' | 'REVIEW_2' | 'REVIEW_3' | 'FINAL_SCORE';
   label: string;
   week_start: number;
   week_end: number;
@@ -679,6 +674,43 @@ export interface GroupReviewSummary {
   };
   warnings: string[];
   milestone: ReviewMilestoneInfo | null;
+  review_sessions?: ReviewSessionTimelineItem[];
+  review_session_summary?: ReviewSessionAggregate | null;
+}
+
+export interface ReviewSessionParticipantSummary {
+  user_id: string;
+  user_name: string | null;
+  present: boolean;
+  did_contribute: boolean;
+  contribution_summary: string | null;
+  completed_items: string[];
+  pending_items: string[];
+  note: string | null;
+}
+
+export interface ReviewSessionAggregate {
+  total_sessions: number;
+  present_count: number;
+  absent_count: number;
+  contributor_count: number;
+  latest_review_date: string | null;
+  latest_note: string | null;
+}
+
+export interface ReviewSessionTimelineItem {
+  id: string;
+  title: string;
+  review_date: string;
+  milestone_code: ReviewMilestoneInfo['code'];
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+  lecturer_note: string | null;
+  participant_reports: ReviewSessionParticipantSummary[];
+  attendance: {
+    present_count: number;
+    absent_count: number;
+    contributor_count: number;
+  };
 }
 
 export interface LecturerReviewSummary {
@@ -868,6 +900,44 @@ export const semesterAPI = {
       method: 'PATCH',
       body: JSON.stringify(data),
     }),
+  createGroupReviewSession: (
+    groupId: string,
+    data: {
+      milestone_code: ReviewMilestoneInfo['code'];
+      review_date: string;
+      title: string;
+      status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+      lecturer_note?: string;
+      participant_reports: Array<{
+        user_id: string;
+        user_name?: string;
+        present: boolean;
+        did_contribute: boolean;
+        contribution_summary?: string;
+        completed_items?: string[];
+        pending_items?: string[];
+        note?: string;
+      }>;
+    },
+  ) =>
+    fetchAPI<ReviewSessionTimelineItem>(
+      `/api/semesters/groups/${groupId}/review-sessions`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  getGroupReviewSessions: (groupId: string) =>
+    fetchAPI<{
+      semester: SemesterInfo | null;
+      group: {
+        group_id: string;
+        group_name: string;
+        class_id: string;
+        class_code: string;
+      } | null;
+      sessions: ReviewSessionTimelineItem[];
+    }>(`/api/semesters/groups/${groupId}/review-sessions`),
   publishMilestoneReviews: (data: {
     milestone_code: ReviewMilestoneInfo['code'];
     class_id?: string;
