@@ -198,7 +198,7 @@ export default function LecturerChatPage() {
       return;
     }
 
-    const summary = lecturerReviewSummary?.data;
+    const summary = lecturerReviewSummary;
     const semesterId = summary?.semester?.id;
     if (!summary || !semesterId) {
       return;
@@ -298,10 +298,10 @@ export default function LecturerChatPage() {
       return;
     }
 
-    const semesterFromSummary = lecturerReviewSummary?.data?.classes?.some(
+    const semesterFromSummary = lecturerReviewSummary?.classes?.some(
       (item) => item.class_id === selectedClassId,
     )
-      ? lecturerReviewSummary?.data?.semester?.id
+      ? lecturerReviewSummary?.semester?.id
       : undefined;
 
     const semesterId =
