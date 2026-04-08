@@ -661,9 +661,22 @@ export interface GroupReviewSummary {
     commit_contribution_score: number | null;
     review_milestone_score: number | null;
     total_score: number | null;
+    auto_score?: number | null;
+    final_score?: number | null;
+    override_reason?: string | null;
   };
   lecturer_note: string | null;
   is_published?: boolean;
+  scoring?: {
+    formula: ReviewScoringFormula | null;
+    config_snapshot: Record<string, unknown> | null;
+    metrics: {
+      total_problems: number;
+      resolved_ratio: number | null;
+      overdue_task_ratio: number | null;
+      attendance_ratio: number | null;
+    };
+  };
   snapshot: {
     task_total: number;
     task_done: number;
@@ -678,14 +691,18 @@ export interface GroupReviewSummary {
   review_session_summary?: ReviewSessionAggregate | null;
 }
 
-export interface ReviewSessionParticipantSummary {
-  user_id: string;
-  user_name: string | null;
-  present: boolean;
-  did_contribute: boolean;
-  contribution_summary: string | null;
-  completed_items: string[];
-  pending_items: string[];
+export type ReviewScoringFormula =
+  | 'ATTENDANCE_ONLY'
+  | 'PROBLEM_RESOLUTION_CONTRIBUTION'
+  | 'ATTENDANCE_PROBLEM_CONTRIBUTION'
+  | 'CUSTOM_SELECTION';
+
+export type ReviewProblemStatus = 'not-done' | 'done' | 'archived';
+
+export interface ReviewSessionProblem {
+  id: string;
+  title: string;
+  status: ReviewProblemStatus;
   note: string | null;
 }
 
@@ -702,15 +719,28 @@ export interface ReviewSessionTimelineItem {
   id: string;
   title: string;
   review_date: string;
+  review_day: string;
   milestone_code: ReviewMilestoneInfo['code'];
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
   lecturer_note: string | null;
-  participant_reports: ReviewSessionParticipantSummary[];
-  attendance: {
-    present_count: number;
-    absent_count: number;
-    contributor_count: number;
-  };
+  what_done_since_last_review: string | null;
+  next_plan_until_next_review: string | null;
+  previous_problem_followup: string | null;
+  attendance_ratio: number | null;
+  current_problems: ReviewSessionProblem[];
+  version_count?: number;
+  latest_action?: 'CREATED' | 'UPDATED' | 'DELETED' | null;
+}
+
+export interface ReviewSessionHistoryItem {
+  id: string;
+  review_session_id: string | null;
+  action: 'CREATED' | 'UPDATED' | 'DELETED';
+  version_number: number;
+  actor_user_id: string | null;
+  created_at: string;
+  milestone_code: ReviewMilestoneInfo['code'];
+  snapshot: Record<string, unknown>;
 }
 
 export interface LecturerReviewSummary {
@@ -756,8 +786,13 @@ export interface StudentPublishedScoresResponse {
         commit_contribution_score: number | null;
         review_milestone_score: number | null;
         total_score: number | null;
+        auto_score?: number | null;
+        final_score?: number | null;
+        override_reason?: string | null;
       };
       lecturer_note: string | null;
+      scoring?: GroupReviewSummary['scoring'];
+      review_sessions?: ReviewSessionTimelineItem[];
     }>;
   }>;
 }
@@ -890,6 +925,10 @@ export const semesterAPI = {
       commit_contribution_score?: number;
       review_milestone_score?: number;
       lecturer_note?: string;
+      scoring_formula?: ReviewScoringFormula;
+      selected_metrics?: string[];
+      final_score?: number;
+      override_reason?: string;
     },
   ) =>
     fetchAPI<{
@@ -908,16 +947,11 @@ export const semesterAPI = {
       title: string;
       status?: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
       lecturer_note?: string;
-      participant_reports: Array<{
-        user_id: string;
-        user_name?: string;
-        present: boolean;
-        did_contribute: boolean;
-        contribution_summary?: string;
-        completed_items?: string[];
-        pending_items?: string[];
-        note?: string;
-      }>;
+      what_done_since_last_review?: string;
+      next_plan_until_next_review?: string;
+      previous_problem_followup?: string;
+      attendance_ratio?: number;
+      current_problems?: ReviewSessionProblem[];
     },
   ) =>
     fetchAPI<ReviewSessionTimelineItem>(
@@ -938,6 +972,46 @@ export const semesterAPI = {
       } | null;
       sessions: ReviewSessionTimelineItem[];
     }>(`/api/semesters/groups/${groupId}/review-sessions`),
+  updateGroupReviewSession: (
+    groupId: string,
+    sessionId: string,
+    data: Partial<{
+      milestone_code: ReviewMilestoneInfo['code'];
+      review_date: string;
+      title: string;
+      status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+      lecturer_note: string;
+      what_done_since_last_review: string;
+      next_plan_until_next_review: string;
+      previous_problem_followup: string;
+      attendance_ratio: number | null;
+      current_problems: ReviewSessionProblem[];
+    }>,
+  ) =>
+    fetchAPI<ReviewSessionTimelineItem>(
+      `/api/semesters/groups/${groupId}/review-sessions/${sessionId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
+  deleteGroupReviewSession: (groupId: string, sessionId: string) =>
+    fetchAPI<{ deleted: boolean }>(
+      `/api/semesters/groups/${groupId}/review-sessions/${sessionId}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  getGroupReviewSessionHistory: (
+    groupId: string,
+    milestoneCode?: ReviewMilestoneInfo['code'],
+  ) =>
+    fetchAPI<{
+      semester: SemesterInfo | null;
+      history: ReviewSessionHistoryItem[];
+    }>(
+      `/api/semesters/groups/${groupId}/review-session-history${milestoneCode ? `?milestone_code=${encodeURIComponent(milestoneCode)}` : ''}`,
+    ),
   publishMilestoneReviews: (data: {
     milestone_code: ReviewMilestoneInfo['code'];
     class_id?: string;

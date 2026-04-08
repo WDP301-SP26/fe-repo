@@ -164,6 +164,83 @@ export default function StudentDashboardPage() {
                       <div className="mt-2 text-sm text-muted-foreground">
                         {group.topic_name || 'Topic not finalized yet'}
                       </div>
+                      {group.review_sessions?.length ? (
+                        <div className="mt-3 space-y-2 rounded-md border bg-muted/20 p-3">
+                          <div className="text-sm font-medium">
+                            Review session timeline
+                          </div>
+                          {group.review_sessions.map((session) => (
+                            <div
+                              key={session.id}
+                              className="rounded-md border bg-background p-3"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="font-medium">
+                                  {session.title}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {new Date(
+                                    session.review_date,
+                                  ).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="mt-2 grid gap-2 text-sm md:grid-cols-2">
+                                <div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Done since last review
+                                  </div>
+                                  <div>
+                                    {session.what_done_since_last_review ||
+                                      'No details recorded.'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Next plan
+                                  </div>
+                                  <div>
+                                    {session.next_plan_until_next_review ||
+                                      'No details recorded.'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Previous problem follow-up
+                                  </div>
+                                  <div>
+                                    {session.previous_problem_followup ||
+                                      'No details recorded.'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Attendance ratio
+                                  </div>
+                                  <div>
+                                    {session.attendance_ratio !== null &&
+                                    session.attendance_ratio !== undefined
+                                      ? `${Math.round(session.attendance_ratio * 100)}%`
+                                      : 'Not recorded'}
+                                  </div>
+                                </div>
+                              </div>
+                              {session.current_problems.length ? (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {session.current_problems.map((problem) => (
+                                    <Badge
+                                      key={problem.id}
+                                      variant="outline"
+                                      className="max-w-full"
+                                    >
+                                      {problem.title} - {problem.status}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                       {group.warnings.length ? (
                         <div className="mt-2 flex flex-wrap gap-2">
                           {group.warnings.map((warning) => (
@@ -253,6 +330,37 @@ export default function StudentDashboardPage() {
                           <strong>{group.scores.total_score ?? '-'}</strong>
                         </div>
                       </div>
+                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          Auto:{' '}
+                          <strong>{group.scores.auto_score ?? '-'}</strong>
+                        </div>
+                        <div>
+                          Final:{' '}
+                          <strong>{group.scores.final_score ?? '-'}</strong>
+                        </div>
+                        <div>
+                          Attendance:{' '}
+                          <strong>
+                            {group.scoring?.metrics.attendance_ratio !== null &&
+                            group.scoring?.metrics.attendance_ratio !==
+                              undefined
+                              ? `${Math.round(group.scoring.metrics.attendance_ratio * 100)}%`
+                              : '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Problems:{' '}
+                          <strong>
+                            {group.scoring?.metrics.total_problems ?? '-'}
+                          </strong>
+                        </div>
+                      </div>
+                      {group.scores.override_reason ? (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Override reason: {group.scores.override_reason}
+                        </div>
+                      ) : null}
                       {group.lecturer_note ? (
                         <div className="mt-2 text-sm text-muted-foreground">
                           Note: {group.lecturer_note}
