@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClassGroups } from '@/hooks/use-api';
-import { groupAPI, semesterAPI } from '@/lib/api';
+import { groupAPI, semesterAPI, topicAPI } from '@/lib/api';
 import { isAPIError } from '@/lib/api-error';
 import {
   DndContext,
@@ -73,11 +73,24 @@ type ClassGroup = {
   id: string;
   name: string;
   project_name?: string | null;
-  topic?: { name?: string | null } | null;
+  description?: string | null;
+  topic?: {
+    id?: string;
+    name?: string | null;
+    description?: string | null;
+    is_taken?: boolean;
+  } | null;
   members_count?: number;
   members?: GroupMember[];
   status?: string;
   github_repo_url?: string | null;
+};
+
+type TopicItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_taken: boolean;
 };
 
 type PendingCapacityConfirm = {
@@ -288,6 +301,7 @@ export default function ClassDetailsPage() {
     project_name: '',
     description: '',
   });
+  const [selectedTopicId, setSelectedTopicId] = useState<string>('');
   const {
     data: reviewSummary,
     isLoading: reviewLoading,
@@ -297,6 +311,9 @@ export default function ClassDetailsPage() {
       ? `/api/semesters/current/reviews/lecturer-summary?classId=${classId}`
       : null,
     () => semesterAPI.getLecturerReviewSummary(classId),
+  );
+  const { data: topics } = useSWR('/api/topics?includeTaken=true', () =>
+    topicAPI.getTopics(true),
   );
   const { data: editingMembers, mutate: mutateEditingMembers } = useSWR(
     editingGroup?.id ? `/api/groups/${editingGroup.id}/members` : null,
@@ -362,10 +379,11 @@ export default function ClassDetailsPage() {
 
   const openEditDialog = (group: ClassGroup) => {
     setEditingGroup(group);
+    setSelectedTopicId(group.topic?.id ?? '');
     setEditForm({
       name: group.name ?? '',
       project_name: group.project_name ?? '',
-      description: '',
+      description: group.description ?? '',
     });
   };
 
@@ -382,6 +400,7 @@ export default function ClassDetailsPage() {
         name: editForm.name.trim(),
         project_name: editForm.project_name.trim() || null,
         description: editForm.description.trim() || null,
+        topic_id: selectedTopicId || undefined,
       });
 
       toast.success('Group updated successfully');
@@ -594,6 +613,10 @@ export default function ClassDetailsPage() {
   const selectedTargetGroup = reassignTargetGroups.find(
     (group) => group.id === selectedTargetGroupId,
   );
+  const typedTopics = (topics ?? []) as TopicItem[];
+  const selectedTopic = selectedTopicId
+    ? (typedTopics.find((topic) => topic.id === selectedTopicId) ?? null)
+    : null;
   const draggingTargetGroupName = draggingTargetGroupId
     ? typedGroups.find((group) => group.id === draggingTargetGroupId)?.name
     : null;
@@ -778,6 +801,65 @@ export default function ClassDetailsPage() {
                       }))
                     }
                   />
+                </div>
+
+                <div className="space-y-3 rounded-lg border p-3">
+                  <h3 className="text-sm font-semibold">Topic Assignment</h3>
+                  <Select
+                    value={selectedTopicId}
+                    onValueChange={setSelectedTopicId}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select an existing topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typedTopics.map((topic) => {
+                        const takenByOtherGroup =
+                          topic.is_taken &&
+                          topic.id !== editingGroup?.topic?.id;
+                        return (
+                          <SelectItem
+                            key={topic.id}
+                            value={topic.id}
+                            disabled={takenByOtherGroup}
+                          >
+                            {topic.name}
+                            {takenByOtherGroup ? ' (Already taken)' : ''}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="rounded-md border bg-background px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Topic Detail
+                    </p>
+                    <p className="mt-1 text-sm">
+                      {selectedTopic?.description?.trim() ||
+                        'No detail available for this topic.'}
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="mt-2"
+                      disabled={!selectedTopic}
+                      onClick={() => {
+                        if (!selectedTopic) return;
+                        setEditForm((current) => ({
+                          ...current,
+                          project_name:
+                            current.project_name || selectedTopic.name,
+                          description:
+                            selectedTopic.description?.trim() ||
+                            current.description,
+                        }));
+                      }}
+                    >
+                      Apply Topic Detail
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 rounded-lg border p-3">
