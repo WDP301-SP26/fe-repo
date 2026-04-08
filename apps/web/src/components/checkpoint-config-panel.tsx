@@ -13,6 +13,7 @@ import { Input } from './ui/input';
 
 interface CheckpointConfigPanelProps {
   classId: string;
+  onSaved?: () => void | Promise<void>;
 }
 
 interface DraftCheckpoint {
@@ -29,7 +30,10 @@ function toDrafts(configs: ClassCheckpointConfig[]): DraftCheckpoint[] {
   }));
 }
 
-export function CheckpointConfigPanel({ classId }: CheckpointConfigPanelProps) {
+export function CheckpointConfigPanel({
+  classId,
+  onSaved,
+}: CheckpointConfigPanelProps) {
   const [data, setData] = useState<ClassCheckpointsResponse | null>(null);
   const [drafts, setDrafts] = useState<DraftCheckpoint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,6 +104,7 @@ export function CheckpointConfigPanel({ classId }: CheckpointConfigPanelProps) {
       setData(result);
       setDrafts(toDrafts(result.checkpoints));
       toast.success('Checkpoint configuration saved.');
+      await onSaved?.();
     } catch (err) {
       toast.error('Failed to save checkpoints.', {
         description: err instanceof Error ? err.message : 'Unexpected error.',
