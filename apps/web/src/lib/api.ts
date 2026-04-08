@@ -138,7 +138,10 @@ export interface ChatConversation {
   id: string;
   semester_id: string;
   class_id: string;
-  student_id: string;
+  student_id: string | null;
+  group_id: string | null;
+  group_name: string | null;
+  is_group_room: boolean;
   lecturer_id: string;
   status: 'ACTIVE' | 'CLOSED';
   last_message_preview: string | null;
@@ -150,7 +153,7 @@ export interface ChatConversation {
     email: string;
     full_name: string | null;
     role: string;
-  };
+  } | null;
   class_code: string;
   semester_name: string;
   created_at: string;
@@ -162,6 +165,13 @@ export interface GetOrCreateConversationInput {
   class_id: string;
   student_id: string;
   lecturer_id: string;
+}
+
+export interface GetOrCreateGroupConversationInput {
+  semester_id: string;
+  class_id: string;
+  group_id: string;
+  lecturer_id?: string;
 }
 
 export interface SendChatMessageInput {
@@ -182,6 +192,11 @@ export interface ChatMessageListResponse {
 export const chatAPI = {
   getOrCreateConversation: (data: GetOrCreateConversationInput) =>
     fetchAPI<ChatConversation>('/api/chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getOrCreateGroupConversation: (data: GetOrCreateGroupConversationInput) =>
+    fetchAPI<ChatConversation>('/api/chat/group-conversations', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
@@ -656,6 +671,10 @@ export interface GroupReviewSummary {
   group_name: string;
   topic_name: string | null;
   review_status: 'PENDING' | 'REVIEWED';
+  members?: Array<{
+    user_id: string;
+    user_name: string | null;
+  }>;
   scores: {
     task_progress_score: number | null;
     commit_contribution_score: number | null;
@@ -706,6 +725,12 @@ export interface ReviewSessionProblem {
   note: string | null;
 }
 
+export interface ReviewSessionAttendanceRecord {
+  user_id: string;
+  user_name: string | null;
+  present: boolean;
+}
+
 export interface ReviewSessionAggregate {
   total_sessions: number;
   present_count: number;
@@ -727,6 +752,8 @@ export interface ReviewSessionTimelineItem {
   next_plan_until_next_review: string | null;
   previous_problem_followup: string | null;
   attendance_ratio: number | null;
+  attendance_records: ReviewSessionAttendanceRecord[];
+  previous_session_id: string | null;
   current_problems: ReviewSessionProblem[];
   version_count?: number;
   latest_action?: 'CREATED' | 'UPDATED' | 'DELETED' | null;
@@ -951,6 +978,7 @@ export const semesterAPI = {
       next_plan_until_next_review?: string;
       previous_problem_followup?: string;
       attendance_ratio?: number;
+      attendance_records?: ReviewSessionAttendanceRecord[];
       current_problems?: ReviewSessionProblem[];
     },
   ) =>
@@ -985,6 +1013,7 @@ export const semesterAPI = {
       next_plan_until_next_review: string;
       previous_problem_followup: string;
       attendance_ratio: number | null;
+      attendance_records: ReviewSessionAttendanceRecord[];
       current_problems: ReviewSessionProblem[];
     }>,
   ) =>

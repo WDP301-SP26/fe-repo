@@ -5,15 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   chatAPI,
+  classAPI,
+  groupAPI,
+  semesterAPI,
   type ChatConversation,
   type ChatMessage,
-  type GetOrCreateConversationInput,
+  type GetOrCreateGroupConversationInput,
 } from '@/lib/api';
 import { isAPIError } from '@/lib/api-error';
 import { getApiBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
-import { MessageSquare, Send } from 'lucide-react';
+import { Loader2, MessageSquare, Send } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { toast } from 'sonner';
@@ -31,12 +41,25 @@ function formatDateTime(value: string | null) {
 }
 
 function displayName(conversation: ChatConversation) {
+  if (conversation.is_group_room && conversation.group_name) {
+    return conversation.group_name;
+  }
+
   return (
-    conversation.counterpart.full_name ||
-    conversation.counterpart.email ||
-    conversation.counterpart.id
+    conversation.counterpart?.full_name ||
+    conversation.counterpart?.email ||
+    conversation.counterpart?.id ||
+    'Unknown conversation'
   );
 }
+
+type MyClassItem = {
+  id: string;
+  code: string;
+  name: string;
+  semester?: string | null;
+  semester_id?: string | null;
+};
 
 export default function LecturerChatPage() {
   const user = useAuthStore((state) => state.user);
@@ -46,28 +69,20 @@ export default function LecturerChatPage() {
   const selectedConversationIdRef = useRef<string | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const localTypingConversationRef = useRef<string | null>(null);
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null);
+  const hasBootstrappedDefaultConversations = useRef(false);
 
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
   >(null);
   const [messageDraft, setMessageDraft] = useState('');
   const [sending, setSending] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [isRemoteTyping, setIsRemoteTyping] = useState(false);
-  const [contextInput, setContextInput] =
-    useState<GetOrCreateConversationInput>({
-      semester_id: '',
-      class_id: '',
-      student_id: '',
-      lecturer_id: user?.id || '',
-    });
-
-  useEffect(() => {
-    if (user?.id) {
-      setContextInput((prev) => ({ ...prev, lecturer_id: user.id }));
-    }
-  }, [user?.id]);
+  const [bootstrappingConversations, setBootstrappingConversations] =
+    useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [openingGroupId, setOpeningGroupId] = useState<string | null>(null);
 
   const {
     data: conversationResponse,
@@ -83,30 +98,248 @@ export default function LecturerChatPage() {
     },
   );
 
-  const conversations = conversationResponse?.data || [];
+  const conversations = (conversationResponse?.data || []).filter(
+    (conversation) => conversation.is_group_room,
+  );
+
+  const { data: myClassesResponse, isLoading: classesLoading } = useSWR(
+    user ? '/api/classes/my-classes' : null,
+    classAPI.getMyClasses,
+    {
+      revalidateOnFocus: false,
+    },
+  );
+
+  const classOptions = useMemo(
+    () => (myClassesResponse || []) as MyClassItem[],
+    [myClassesResponse],
+  );
+
+  const selectedClass = useMemo(
+    () => classOptions.find((item) => item.id === selectedClassId) || null,
+    [classOptions, selectedClassId],
+  );
 
   useEffect(() => {
-    if (!selectedConversationId && conversations.length > 0) {
-      setSelectedConversationId(conversations[0].id);
+    if (!classOptions.length) {
+      setSelectedClassId(null);
+      return;
+    }
+
+    if (
+      !selectedClassId ||
+      !classOptions.some((item) => item.id === selectedClassId)
+    ) {
+      setSelectedClassId(classOptions[0].id);
+    }
+  }, [classOptions, selectedClassId]);
+
+  const { data: classGroups, isLoading: groupsLoading } = useSWR(
+    user && selectedClassId ? ['/api/groups/class', selectedClassId] : null,
+    ([, classId]) => groupAPI.getGroupsByClass(classId),
+    {
+      revalidateOnFocus: false,
+    },
+  );
+
+  const selectedClassConversations = useMemo(
+    () =>
+      selectedClassId
+        ? conversations.filter(
+            (conversation) => conversation.class_id === selectedClassId,
+          )
+        : conversations,
+    [conversations, selectedClassId],
+  );
+
+  const conversationByGroupId = useMemo(
+    () =>
+      new Map(
+        selectedClassConversations
+          .filter((conversation) => !!conversation.group_id)
+          .map((conversation) => [
+            conversation.group_id as string,
+            conversation,
+          ]),
+      ),
+    [selectedClassConversations],
+  );
+
+  const { data: lecturerReviewSummary } = useSWR(
+    user ? '/api/semester/reviews/lecturer-summary' : null,
+    () => semesterAPI.getLecturerReviewSummary(),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+    },
+  );
+
+  const { data: currentSemester } = useSWR(
+    user ? '/api/semesters/current' : null,
+    semesterAPI.getCurrentSemester,
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: false,
+    },
+  );
+
+  useEffect(() => {
+    if (!user) {
+      hasBootstrappedDefaultConversations.current = false;
+      setBootstrappingConversations(false);
+      return;
+    }
+
+    if (conversationLoading) {
+      return;
+    }
+
+    if (hasBootstrappedDefaultConversations.current) {
+      return;
+    }
+
+    const summary = lecturerReviewSummary?.data;
+    const semesterId = summary?.semester?.id;
+    if (!summary || !semesterId) {
+      return;
+    }
+
+    const existingPairs = new Set(
+      conversations.map((conversation) =>
+        conversation.group_id
+          ? `${conversation.class_id}:${conversation.group_id}`
+          : '',
+      ),
+    );
+
+    const pendingMap = new Map<string, GetOrCreateGroupConversationInput>();
+    summary.classes.forEach((classItem) => {
+      classItem.groups.forEach((group) => {
+        const key = `${classItem.class_id}:${group.group_id}`;
+        if (existingPairs.has(key) || pendingMap.has(key)) {
+          return;
+        }
+        pendingMap.set(key, {
+          semester_id: semesterId,
+          class_id: classItem.class_id,
+          group_id: group.group_id,
+          lecturer_id: user.id,
+        });
+      });
+    });
+
+    const missingConversations = Array.from(pendingMap.values());
+    hasBootstrappedDefaultConversations.current = true;
+
+    if (missingConversations.length === 0) {
+      return;
+    }
+
+    setBootstrappingConversations(true);
+    Promise.allSettled(
+      missingConversations.map((payload) =>
+        chatAPI.getOrCreateGroupConversation(payload),
+      ),
+    )
+      .then(async (results) => {
+        const createdCount = results.filter(
+          (result) => result.status === 'fulfilled',
+        ).length;
+
+        await mutateConversations();
+
+        if (createdCount > 0) {
+          toast.success('Đã tạo hội thoại mặc định', {
+            description: `Tạo ${createdCount} room chat theo nhóm của lớp.`,
+          });
+        }
+      })
+      .finally(() => {
+        setBootstrappingConversations(false);
+      });
+  }, [
+    conversationLoading,
+    conversations,
+    lecturerReviewSummary,
+    mutateConversations,
+    user,
+  ]);
+
+  useEffect(() => {
+    if (!selectedConversationId && selectedClassConversations.length > 0) {
+      setSelectedConversationId(selectedClassConversations[0].id);
     }
 
     if (
       selectedConversationId &&
-      !conversations.some(
+      !selectedClassConversations.some(
         (conversation) => conversation.id === selectedConversationId,
       )
     ) {
-      setSelectedConversationId(conversations[0]?.id || null);
+      setSelectedConversationId(selectedClassConversations[0]?.id || null);
     }
-  }, [conversations, selectedConversationId]);
+  }, [selectedClassConversations, selectedConversationId]);
 
   const selectedConversation = useMemo(
     () =>
-      conversations.find(
+      selectedClassConversations.find(
         (conversation) => conversation.id === selectedConversationId,
       ) || null,
-    [conversations, selectedConversationId],
+    [selectedClassConversations, selectedConversationId],
   );
+
+  const handleSelectGroup = async (group: {
+    id: string;
+    name?: string | null;
+  }) => {
+    const existing = conversationByGroupId.get(group.id);
+    if (existing) {
+      setSelectedConversationId(existing.id);
+      return;
+    }
+
+    const semesterFromSummary = lecturerReviewSummary?.data?.classes?.some(
+      (item) => item.class_id === selectedClassId,
+    )
+      ? lecturerReviewSummary?.data?.semester?.id
+      : undefined;
+
+    const semesterId =
+      selectedClassConversations[0]?.semester_id ||
+      selectedClass?.semester_id ||
+      semesterFromSummary ||
+      (currentSemester &&
+      (!selectedClass?.semester ||
+        selectedClass.semester === currentSemester.code)
+        ? currentSemester.id
+        : undefined);
+    if (!semesterId || !selectedClassId) {
+      toast.error('Chưa xác định được học kỳ hiện tại để tạo room chat.');
+      return;
+    }
+
+    try {
+      setOpeningGroupId(group.id);
+      const payload: GetOrCreateGroupConversationInput = {
+        semester_id: semesterId,
+        class_id: selectedClassId,
+        group_id: group.id,
+        lecturer_id: user?.id,
+      };
+      const conversation = await chatAPI.getOrCreateGroupConversation(payload);
+      await mutateConversations();
+      setSelectedConversationId(conversation.id);
+    } catch (error) {
+      const message = isAPIError(error)
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : 'Không thể mở group chat';
+      toast.error('Mở group chat thất bại', { description: message });
+    } finally {
+      setOpeningGroupId(null);
+    }
+  };
 
   const {
     data: messageResponse,
@@ -273,6 +506,16 @@ export default function LecturerChatPage() {
       return;
     }
 
+    const viewport = messagesViewportRef.current;
+    if (viewport) {
+      requestAnimationFrame(() => {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth',
+        });
+      });
+    }
+
     const hasUnread = conversations.some(
       (conversation) =>
         conversation.id === selectedConversationId &&
@@ -296,39 +539,6 @@ export default function LecturerChatPage() {
         // Ignore read sync errors to keep chat usage uninterrupted.
       });
   }, [conversations, mutateConversations, selectedConversationId]);
-
-  const handleCreateConversation = async () => {
-    if (
-      !contextInput.semester_id ||
-      !contextInput.class_id ||
-      !contextInput.student_id
-    ) {
-      toast.error('Vui lòng nhập đủ Semester ID, Class ID và Student ID');
-      return;
-    }
-
-    if (!contextInput.lecturer_id) {
-      toast.error('Không tìm thấy lecturer_id hiện tại. Hãy đăng nhập lại.');
-      return;
-    }
-
-    try {
-      setCreating(true);
-      const conversation = await chatAPI.getOrCreateConversation(contextInput);
-      await mutateConversations();
-      setSelectedConversationId(conversation.id);
-      toast.success('Đã mở hội thoại thành công');
-    } catch (error) {
-      const message = isAPIError(error)
-        ? error.message
-        : error instanceof Error
-          ? error.message
-          : 'Không thể mở hội thoại';
-      toast.error('Mở hội thoại thất bại', { description: message });
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleSend = async () => {
     if (!selectedConversationId) {
@@ -451,71 +661,45 @@ export default function LecturerChatPage() {
           </Badge>
         </div>
         <p className="text-muted-foreground mt-1">
-          Trao đổi trực tiếp với sinh viên theo từng lớp/học kỳ.
+          Trao đổi theo các group chat của lớp/học kỳ.
         </p>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Get or Create Conversation</CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <Input
-            placeholder="Semester ID"
-            value={contextInput.semester_id}
-            onChange={(event) =>
-              setContextInput((prev) => ({
-                ...prev,
-                semester_id: event.target.value,
-              }))
-            }
-          />
-          <Input
-            placeholder="Class ID"
-            value={contextInput.class_id}
-            onChange={(event) =>
-              setContextInput((prev) => ({
-                ...prev,
-                class_id: event.target.value,
-              }))
-            }
-          />
-          <Input
-            placeholder="Student ID"
-            value={contextInput.student_id}
-            onChange={(event) =>
-              setContextInput((prev) => ({
-                ...prev,
-                student_id: event.target.value,
-              }))
-            }
-          />
-          <Input
-            placeholder="Lecturer ID"
-            value={contextInput.lecturer_id}
-            onChange={(event) =>
-              setContextInput((prev) => ({
-                ...prev,
-                lecturer_id: event.target.value,
-              }))
-            }
-            disabled
-          />
-          <Button onClick={handleCreateConversation} disabled={creating}>
-            {creating ? 'Opening...' : 'Open Chat'}
-          </Button>
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Conversations</CardTitle>
+            <CardTitle className="text-lg">Group conversations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <div className="space-y-2 pb-2">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Class
+              </div>
+              <Select
+                value={selectedClassId ?? ''}
+                onValueChange={(value) => setSelectedClassId(value)}
+                disabled={classesLoading || classOptions.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn lớp" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classOptions.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.code} - {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             {conversationLoading && (
               <p className="text-sm text-muted-foreground">
                 Loading conversations...
+              </p>
+            )}
+            {!conversationLoading && bootstrappingConversations && (
+              <p className="text-sm text-muted-foreground">
+                Đang đồng bộ hội thoại mặc định theo danh sách nhóm...
               </p>
             )}
             {!conversationLoading && conversationError && (
@@ -523,51 +707,65 @@ export default function LecturerChatPage() {
                 Failed to load conversations.
               </p>
             )}
+            {!conversationLoading && !conversationError && groupsLoading && (
+              <p className="text-sm text-muted-foreground">Loading groups...</p>
+            )}
             {!conversationLoading &&
               !conversationError &&
-              conversations.length === 0 && (
+              !groupsLoading &&
+              (classGroups || []).length === 0 && (
                 <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-                  Chưa có hội thoại nào. Bạn có thể mở hội thoại mới bằng
-                  context ở trên.
+                  Lớp này chưa có group nào.
                 </div>
               )}
-            {conversations.map((conversation) => {
-              const active = conversation.id === selectedConversationId;
+            {(classGroups || []).map((group: { id: string; name: string }) => {
+              const conversation = conversationByGroupId.get(group.id) || null;
+              const active = conversation?.id === selectedConversationId;
+              const isOpening = openingGroupId === group.id;
+              const unread = conversation?.unread_count || 0;
+
               return (
                 <button
-                  key={conversation.id}
+                  key={group.id}
                   type="button"
-                  onClick={() => setSelectedConversationId(conversation.id)}
+                  onClick={() => void handleSelectGroup(group)}
                   className={`w-full rounded-md border p-3 text-left transition ${
                     active
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:border-primary/50'
                   }`}
+                  disabled={isOpening}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium truncate">
-                      {displayName(conversation)}
-                    </p>
-                    {conversation.unread_count > 0 && (
-                      <Badge>{conversation.unread_count}</Badge>
-                    )}
+                    <p className="font-medium truncate">{group.name}</p>
+                    <div className="flex items-center gap-2">
+                      {isOpening ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      ) : null}
+                      {unread > 0 ? <Badge>{unread}</Badge> : null}
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground truncate">
-                    {conversation.class_code} - {conversation.semester_name}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground truncate">
-                    {conversation.last_message_preview || 'No messages yet'}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDateTime(conversation.last_message_at)}
-                  </p>
+                  {conversation ? (
+                    <>
+                      <p className="mt-1 text-sm text-muted-foreground truncate">
+                        {conversation.last_message_preview || 'No messages yet'}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDateTime(conversation.last_message_at)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Chưa có room chat. Bấm để tạo/mở room.
+                    </p>
+                  )}
                 </button>
               );
             })}
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 flex flex-col lg:h-[calc(100vh-220px)] lg:min-h-[560px]">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
@@ -576,8 +774,11 @@ export default function LecturerChatPage() {
                 : 'Select a conversation'}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="h-96 overflow-y-auto rounded-md border bg-muted/20 p-3">
+          <CardContent className="flex min-h-0 flex-1 flex-col gap-3">
+            <div
+              ref={messagesViewportRef}
+              className="flex-1 min-h-[260px] overflow-y-auto rounded-md border bg-muted/20 p-3"
+            >
               {!selectedConversation && (
                 <p className="text-sm text-muted-foreground">
                   Chọn một hội thoại bên trái để xem lịch sử tin nhắn.

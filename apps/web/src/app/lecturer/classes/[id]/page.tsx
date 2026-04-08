@@ -1,7 +1,6 @@
 'use client';
 
 import { CheckpointConfigPanel } from '@/components/checkpoint-config-panel';
-import { LecturerReviewQuickPanel } from '@/components/lecturer-review-quick-panel';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +54,7 @@ import {
   UserMinus,
   Users,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -108,6 +108,16 @@ type UngroupedStudent = {
   full_name: string | null;
   email: string;
 };
+
+const GROUPS_PER_PAGE = 3;
+
+const LecturerReviewQuickPanel = dynamic(
+  () =>
+    import('@/components/lecturer-review-quick-panel').then(
+      (m) => m.LecturerReviewQuickPanel,
+    ),
+  { ssr: false },
+);
 
 function DraggableMemberCard({
   member,
@@ -224,15 +234,30 @@ export default function ClassDetailsPage() {
   const [selectedTargetGroupId, setSelectedTargetGroupId] = useState<
     string | null
   >(null);
-  const [selectedUngroupedStudentId, setSelectedUngroupedStudentId] = useState<
-    string | null
-  >(null);
+  const [selectedUngroupedStudentIds, setSelectedUngroupedStudentIds] =
+    useState<string[]>([]);
   const [assignTargetGroupId, setAssignTargetGroupId] = useState<string | null>(
     null,
   );
   const [isAssigningUngrouped, setIsAssigningUngrouped] = useState(false);
+  const [ungroupedStudentSearch, setUngroupedStudentSearch] = useState('');
+  const [currentGroupPage, setCurrentGroupPage] = useState(1);
 
   const typedGroups = useMemo(() => (groups ?? []) as ClassGroup[], [groups]);
+  const totalGroupPages = Math.max(
+    1,
+    Math.ceil(typedGroups.length / GROUPS_PER_PAGE),
+  );
+  const pagedGroups = useMemo(() => {
+    const start = (currentGroupPage - 1) * GROUPS_PER_PAGE;
+    return typedGroups.slice(start, start + GROUPS_PER_PAGE);
+  }, [typedGroups, currentGroupPage]);
+
+  useEffect(() => {
+    if (currentGroupPage > totalGroupPages) {
+      setCurrentGroupPage(totalGroupPages);
+    }
+  }, [currentGroupPage, totalGroupPages]);
 
   useEffect(() => {
     if (!typedGroups.length) {
@@ -477,7 +502,12 @@ export default function ClassDetailsPage() {
     try {
       await groupAPI.removeMember(editingGroup.id, member.id);
       toast.success('Member removed from group');
-      await Promise.all([mutateEditingMembers(), refreshGroups()]);
+      await Promise.all([
+        mutateEditingMembers(),
+        mutateUngroupedStudents(),
+        mutateReviewSummary(),
+        refreshGroups(),
+      ]);
     } catch (fetchError: any) {
       toast.error('Failed to remove member', {
         description: fetchError?.message ?? 'Unexpected error',
@@ -622,29 +652,71 @@ export default function ClassDetailsPage() {
     : null;
   const ungroupedStudents =
     (ungroupedStudentsData?.students as UngroupedStudent[] | undefined) ?? [];
-  const selectedUngroupedStudent = ungroupedStudents.find(
-    (student) => student.id === selectedUngroupedStudentId,
-  );
+  const filteredUngroupedStudents = useMemo(() => {
+    const keyword = ungroupedStudentSearch.trim().toLowerCase();
+    if (!keyword) {
+      return ungroupedStudents;
+    }
+
+    return ungroupedStudents.filter((student) =>
+      [student.full_name, student.email, student.student_id]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(keyword)),
+    );
+  }, [ungroupedStudentSearch, ungroupedStudents]);
+
+  const toggleUngroupedStudentSelection = (studentId: string) => {
+    setSelectedUngroupedStudentIds((current) =>
+      current.includes(studentId)
+        ? current.filter((id) => id !== studentId)
+        : [...current, studentId],
+    );
+  };
 
   const handleAssignUngroupedStudent = async () => {
-    if (!selectedUngroupedStudentId || !assignTargetGroupId) {
-      toast.error('Select a student and a target group first');
+    if (!selectedUngroupedStudentIds.length || !assignTargetGroupId) {
+      toast.error('Select one or more students and a target group first');
       return;
     }
 
     setIsAssigningUngrouped(true);
     try {
-      await groupAPI.addMember(assignTargetGroupId, {
-        user_id: selectedUngroupedStudentId,
-        role_in_group: 'MEMBER',
-      });
-      toast.success('Student assigned to group');
-      setSelectedUngroupedStudentId(null);
+      const results = await Promise.allSettled(
+        selectedUngroupedStudentIds.map((studentId) =>
+          groupAPI.addMember(assignTargetGroupId, {
+            user_id: studentId,
+            role_in_group: 'MEMBER',
+          }),
+        ),
+      );
+
+      const failedStudentIds = results
+        .map((result, index) => ({
+          result,
+          studentId: selectedUngroupedStudentIds[index],
+        }))
+        .filter((entry) => entry.result.status === 'rejected')
+        .map((entry) => entry.studentId);
+      const successCount = results.length - failedStudentIds.length;
+
+      if (successCount > 0) {
+        toast.success(
+          `${successCount} student${successCount > 1 ? 's' : ''} assigned to group`,
+        );
+      }
+      if (failedStudentIds.length > 0) {
+        toast.error(
+          `${failedStudentIds.length} student${failedStudentIds.length > 1 ? 's' : ''} could not be assigned`,
+        );
+      }
+
+      setSelectedUngroupedStudentIds(failedStudentIds);
 
       await Promise.all([
         mutateUngroupedStudents(),
         mutateSelectedTargetMembers(),
         mutateReassignSourceMembers(),
+        mutateReviewSummary(),
         refreshGroups(),
       ]);
     } catch (fetchError: any) {
@@ -657,7 +729,7 @@ export default function ClassDetailsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       <div className="flex items-center justify-between border-b pb-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => router.back()}>
@@ -677,11 +749,14 @@ export default function ClassDetailsPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="groups">Groups</TabsTrigger>
-          <TabsTrigger value="review">Review Snapshot</TabsTrigger>
+          <TabsTrigger value="member-reassignment">
+            Member Reassignment
+          </TabsTrigger>
+          <TabsTrigger value="review">Review Sessions</TabsTrigger>
           <TabsTrigger value="checkpoint">Checkpoint Configuration</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="groups" className="space-y-6">
+        <TabsContent value="groups" className="min-w-0 space-y-6">
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={(open) => {
@@ -761,7 +836,7 @@ export default function ClassDetailsPage() {
               }
             }}
           >
-            <DialogContent className="max-w-5xl">
+            <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Group</DialogTitle>
                 <DialogDescription>
@@ -1031,149 +1106,328 @@ export default function ClassDetailsPage() {
             </AlertDialogContent>
           </AlertDialog>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Group List</h2>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{typedGroups.length} groups</Badge>
+                <Badge variant="secondary">
+                  Page {currentGroupPage}/{totalGroupPages}
+                </Badge>
+              </div>
+            </div>
             {isLoading && <p>Loading groups...</p>}
             {error && <p className="text-red-500">Failed to load groups.</p>}
 
-            {typedGroups.map((group, index) => {
-              const memberCount =
-                group.members_count ?? group.members?.length ?? 0;
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {pagedGroups.map((group, pageIndex) => {
+                const memberCount =
+                  group.members_count ?? group.members?.length ?? 0;
+                const displayIndex =
+                  (currentGroupPage - 1) * GROUPS_PER_PAGE + pageIndex + 1;
 
-              return (
-                <Card
-                  key={group.id}
-                  className="hover:border-primary transition-colors hover:shadow-md"
-                >
-                  <CardHeader className="pb-3 border-b bg-muted/30">
-                    <CardTitle className="flex justify-between items-center text-lg">
-                      <span>{group.name}</span>
-                      <span className="text-sm font-normal text-muted-foreground bg-accent px-2 py-0.5 rounded-full">
-                        Group {index + 1}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-4 space-y-4">
-                    <div className="flex items-center gap-3 text-sm">
-                      <Users className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <div className="font-medium">
-                          Members ({memberCount}/{classMemberLimit})
-                        </div>
-                        {memberCount === 0 && (
-                          <span className="text-muted-foreground text-xs italic">
-                            Empty
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-sm">
-                      <GitBranch className="h-5 w-5 text-muted-foreground" />
-                      <div className="w-full">
-                        <div className="font-medium">Topic Workspace</div>
-                        {group.topic ? (
-                          <div className="mt-1">
-                            <p className="text-primary font-semibold">
-                              {group.topic.name}
-                            </p>
-                            {group.github_repo_url ? (
-                              <a
-                                href={group.github_repo_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-blue-500 hover:underline block truncate mt-1"
-                              >
-                                {group.github_repo_url}
-                              </a>
-                            ) : (
-                              <span className="text-xs text-orange-500 block mt-1">
-                                Repo Pending Setup
-                              </span>
-                            )}
+                return (
+                  <Card
+                    key={group.id}
+                    className="transition-colors hover:border-primary hover:shadow-md"
+                  >
+                    <CardHeader className="border-b bg-muted/30 pb-3">
+                      <CardTitle className="flex items-center justify-between text-lg">
+                        <span>{group.name}</span>
+                        <span className="rounded-full bg-accent px-2 py-0.5 text-sm font-normal text-muted-foreground">
+                          Group {displayIndex}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-4">
+                      <div className="flex items-center gap-3 text-sm">
+                        <Users className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium">
+                            Members ({memberCount}/{classMemberLimit})
                           </div>
-                        ) : (
-                          <p className="text-muted-foreground text-xs italic mt-1">
-                            Pending Selection
-                          </p>
-                        )}
+                          {memberCount === 0 ? (
+                            <span className="text-xs italic text-muted-foreground">
+                              Empty
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                  <div className="p-4 border-t bg-muted/10 space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() =>
-                        router.push(`/lecturer/groups/${group.id}`)
-                      }
-                    >
-                      View Analytics & Commits
-                    </Button>
 
-                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-3 text-sm">
+                        <GitBranch className="h-5 w-5 text-muted-foreground" />
+                        <div className="w-full">
+                          <div className="font-medium">Topic Workspace</div>
+                          {group.topic ? (
+                            <div className="mt-1">
+                              <p className="font-semibold text-primary">
+                                {group.topic.name}
+                              </p>
+                              {group.github_repo_url ? (
+                                <a
+                                  href={group.github_repo_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-1 block truncate text-xs text-blue-500 hover:underline"
+                                >
+                                  {group.github_repo_url}
+                                </a>
+                              ) : (
+                                <span className="mt-1 block text-xs text-orange-500">
+                                  Repo Pending Setup
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-xs italic text-muted-foreground">
+                              Pending Selection
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="space-y-2 border-t bg-muted/10 p-4">
                       <Button
-                        variant="secondary"
-                        onClick={() => openEditDialog(group)}
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          router.push(`/lecturer/groups/${group.id}`)
+                        }
                       >
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit
+                        View Analytics & Commits
                       </Button>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            disabled={memberCount > 0}
-                            title={
-                              memberCount > 0
-                                ? 'Group has members, deletion is disabled'
-                                : undefined
-                            }
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              Delete this group?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Group <strong>{group.name}</strong> will be
-                              removed, including memberships inside it. This
-                              action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel
-                              disabled={groupToDeleteId === group.id}
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="secondary"
+                          onClick={() => openEditDialog(group)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              disabled={memberCount > 0}
+                              title={
+                                memberCount > 0
+                                  ? 'Group has members, deletion is disabled'
+                                  : undefined
+                              }
                             >
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteGroup(group.id)}
-                              disabled={groupToDeleteId === group.id}
-                            >
-                              {groupToDeleteId === group.id ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Deleting...
-                                </>
-                              ) : (
-                                'Delete Group'
-                              )}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Delete this group?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Group <strong>{group.name}</strong> will be
+                                removed, including memberships inside it. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel
+                                disabled={groupToDeleteId === group.id}
+                              >
+                                Cancel
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteGroup(group.id)}
+                                disabled={groupToDeleteId === group.id}
+                              >
+                                {groupToDeleteId === group.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  'Delete Group'
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              );
-            })}
+                  </Card>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentGroupPage <= 1}
+                onClick={() =>
+                  setCurrentGroupPage((current) => Math.max(1, current - 1))
+                }
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentGroupPage >= totalGroupPages}
+                onClick={() =>
+                  setCurrentGroupPage((current) =>
+                    Math.min(totalGroupPages, current + 1),
+                  )
+                }
+              >
+                Next
+              </Button>
+            </div>
           </div>
 
+          <Card className="border-2 border-border shadow-md">
+            <CardHeader className="border-b bg-muted/20">
+              <CardTitle>Students Without Group</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Students below are enrolled in this class but not assigned to
+                any active group.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-4">
+              <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm">
+                <span className="font-medium">Ungrouped students</span>
+                <Badge
+                  variant={
+                    ungroupedStudents.length ? 'destructive' : 'secondary'
+                  }
+                >
+                  {filteredUngroupedStudents.length}
+                  {ungroupedStudentSearch.trim()
+                    ? ` / ${ungroupedStudents.length}`
+                    : ''}
+                </Badge>
+              </div>
+
+              {ungroupedStudents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Great. All students in this class are already assigned to
+                  groups.
+                </p>
+              ) : (
+                <>
+                  <div className="rounded-lg border border-border bg-background p-3 space-y-3">
+                    <p className="text-sm font-medium">
+                      Assign selected students
+                    </p>
+                    <Input
+                      value={ungroupedStudentSearch}
+                      onChange={(event) =>
+                        setUngroupedStudentSearch(event.target.value)
+                      }
+                      placeholder="Search by name, email, or student ID"
+                    />
+                    <div className="grid gap-2 md:grid-cols-[1fr_220px_auto]">
+                      <div className="text-sm text-muted-foreground">
+                        {selectedUngroupedStudentIds.length > 0
+                          ? `Selected: ${selectedUngroupedStudentIds.length} student${selectedUngroupedStudentIds.length > 1 ? 's' : ''}`
+                          : 'Select one or more students below'}
+                      </div>
+                      <Select
+                        value={assignTargetGroupId ?? ''}
+                        onValueChange={setAssignTargetGroupId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Choose target group" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {typedGroups.map((group) => (
+                            <SelectItem key={group.id} value={group.id}>
+                              {group.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={handleAssignUngroupedStudent}
+                        disabled={
+                          isAssigningUngrouped ||
+                          selectedUngroupedStudentIds.length === 0 ||
+                          !assignTargetGroupId
+                        }
+                      >
+                        {isAssigningUngrouped ? 'Assigning...' : 'Assign'}
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setSelectedUngroupedStudentIds(
+                            filteredUngroupedStudents.map(
+                              (student) => student.id,
+                            ),
+                          )
+                        }
+                        disabled={filteredUngroupedStudents.length === 0}
+                      >
+                        Select all
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setSelectedUngroupedStudentIds([])}
+                        disabled={selectedUngroupedStudentIds.length === 0}
+                      >
+                        Clear selection
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {filteredUngroupedStudents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No student matches the current search.
+                      </p>
+                    ) : null}
+                    {filteredUngroupedStudents.map((student) => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() =>
+                          toggleUngroupedStudentSelection(student.id)
+                        }
+                        className={`flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-left transition ${
+                          selectedUngroupedStudentIds.includes(student.id)
+                            ? 'border-primary ring-2 ring-primary/20'
+                            : 'border-border hover:border-primary/60'
+                        }`}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">
+                            {student.full_name ?? student.email}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {student.student_id ?? 'No Student ID'} -{' '}
+                            {student.email}
+                          </p>
+                        </div>
+                        <Badge variant="destructive">UNGROUPED</Badge>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="member-reassignment" className="space-y-6">
           <Card className="border-2 border-border shadow-md">
             <CardHeader className="border-b bg-linear-to-r from-muted/70 to-muted/20">
               <CardTitle>Member Reassignment</CardTitle>
@@ -1262,32 +1516,30 @@ export default function ClassDetailsPage() {
                       </div>
                     ) : (
                       <>
-                        <div className="grid gap-2 md:grid-cols-2">
-                          {reassignTargetGroups.map((group) => {
-                            const memberCount =
-                              group.members_count ?? group.members?.length ?? 0;
-                            const selected = group.id === selectedTargetGroupId;
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Target group</p>
+                          <Select
+                            value={selectedTargetGroupId ?? ''}
+                            onValueChange={setSelectedTargetGroupId}
+                          >
+                            <SelectTrigger className="border-2 border-border">
+                              <SelectValue placeholder="Select target group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {reassignTargetGroups.map((group) => {
+                                const memberCount =
+                                  group.members_count ??
+                                  group.members?.length ??
+                                  0;
 
-                            return (
-                              <button
-                                key={group.id}
-                                type="button"
-                                onClick={() =>
-                                  setSelectedTargetGroupId(group.id)
-                                }
-                                className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
-                                  selected
-                                    ? 'border-primary bg-primary/10 shadow-sm'
-                                    : 'border-border bg-background hover:border-primary/50'
-                                }`}
-                              >
-                                <p className="font-semibold">{group.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {memberCount} members
-                                </p>
-                              </button>
-                            );
-                          })}
+                                return (
+                                  <SelectItem key={group.id} value={group.id}>
+                                    {group.name} ({memberCount} members)
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
                         </div>
 
                         {selectedTargetGroup ? (
@@ -1345,103 +1597,6 @@ export default function ClassDetailsPage() {
               </DndContext>
             </CardContent>
           </Card>
-
-          <Card className="border-2 border-border shadow-md">
-            <CardHeader className="border-b bg-muted/20">
-              <CardTitle>Students Without Group</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Students below are enrolled in this class but not assigned to
-                any active group.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3 pt-4">
-              <div className="flex items-center justify-between rounded-md border bg-background px-3 py-2 text-sm">
-                <span className="font-medium">Ungrouped students</span>
-                <Badge
-                  variant={
-                    ungroupedStudents.length ? 'destructive' : 'secondary'
-                  }
-                >
-                  {ungroupedStudents.length}
-                </Badge>
-              </div>
-
-              {ungroupedStudents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Great. All students in this class are already assigned to
-                  groups.
-                </p>
-              ) : (
-                <>
-                  <div className="rounded-lg border border-border bg-background p-3 space-y-3">
-                    <p className="text-sm font-medium">
-                      Assign selected student
-                    </p>
-                    <div className="grid gap-2 md:grid-cols-[1fr_220px_auto]">
-                      <div className="text-sm text-muted-foreground">
-                        {selectedUngroupedStudent
-                          ? `Selected: ${selectedUngroupedStudent.full_name ?? selectedUngroupedStudent.email}`
-                          : 'Click a student below to select'}
-                      </div>
-                      <Select
-                        value={assignTargetGroupId ?? ''}
-                        onValueChange={setAssignTargetGroupId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose target group" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {typedGroups.map((group) => (
-                            <SelectItem key={group.id} value={group.id}>
-                              {group.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        onClick={handleAssignUngroupedStudent}
-                        disabled={
-                          isAssigningUngrouped ||
-                          !selectedUngroupedStudentId ||
-                          !assignTargetGroupId
-                        }
-                      >
-                        {isAssigningUngrouped ? 'Assigning...' : 'Assign'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    {ungroupedStudents.map((student) => (
-                      <button
-                        key={student.id}
-                        type="button"
-                        onClick={() =>
-                          setSelectedUngroupedStudentId(student.id)
-                        }
-                        className={`flex w-full items-center justify-between rounded-lg border bg-background px-3 py-2 text-left transition ${
-                          selectedUngroupedStudentId === student.id
-                            ? 'border-primary ring-2 ring-primary/20'
-                            : 'border-border hover:border-primary/60'
-                        }`}
-                      >
-                        <div>
-                          <p className="text-sm font-medium">
-                            {student.full_name ?? student.email}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {student.student_id ?? 'No Student ID'} -{' '}
-                            {student.email}
-                          </p>
-                        </div>
-                        <Badge variant="destructive">UNGROUPED</Badge>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="review">
@@ -1456,7 +1611,12 @@ export default function ClassDetailsPage() {
         </TabsContent>
 
         <TabsContent value="checkpoint">
-          <CheckpointConfigPanel classId={classId} />
+          <CheckpointConfigPanel
+            classId={classId}
+            onSaved={() => {
+              void mutateReviewSummary();
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>
