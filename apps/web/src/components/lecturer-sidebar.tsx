@@ -13,16 +13,35 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { chatAPI } from '@/lib/api';
 import { isActiveMenuItem, lecturerMenuItems } from '@/lib/navigation';
 import { useAuthStore } from '@/stores/authStore';
 import { MessageSquare, Users2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import useSWR from 'swr';
 
 export function LecturerSidebar() {
   const user = useAuthStore((state) => state.user);
   const pathname = usePathname();
+  const { data: conversationResponse } = useSWR(
+    user ? '/api/chat/conversations/sidebar' : null,
+    chatAPI.listConversations,
+    {
+      refreshInterval: 4000,
+      revalidateOnFocus: true,
+    },
+  );
+
+  const hasUnreadMessages = useMemo(
+    () =>
+      (conversationResponse?.data || []).some(
+        (conversation) => conversation.unread_count > 0,
+      ),
+    [conversationResponse],
+  );
+
   const navItems = useMemo(() => {
     if (lecturerMenuItems.some((item) => item.url === '/lecturer/chat')) {
       return lecturerMenuItems;
@@ -71,7 +90,15 @@ export function LecturerSidebar() {
                       className="transition-colors hover:bg-muted"
                     >
                       <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
+                        <span className="relative inline-flex">
+                          <item.icon className="h-4 w-4" />
+                          {item.url === '/lecturer/chat' &&
+                          hasUnreadMessages ? (
+                            <span className="absolute -right-2.5 -top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                              !
+                            </span>
+                          ) : null}
+                        </span>
                         <span>{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
