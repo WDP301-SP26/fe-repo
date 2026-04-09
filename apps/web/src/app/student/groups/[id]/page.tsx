@@ -220,6 +220,7 @@ export default function GroupDetailsPage() {
   const isLeader =
     group?.members?.find((m: any) => m.id === user?.id)?.role_in_group ===
     'LEADER';
+  const isUpcomingSemester = group?.semester_status === 'UPCOMING';
 
   const buildReconnectUrl = (provider: 'GITHUB' | 'JIRA') => {
     const apiUrl = getApiBaseUrl();
@@ -316,8 +317,21 @@ export default function GroupDetailsPage() {
   const jiraLinked = !!integrationStatus?.user.jira.linked;
 
   const handleProvisionWorkspace = async () => {
+    if (!isLeader) {
+      toast.error(
+        'Only group leaders can initialize workspace and change topic.',
+      );
+      return;
+    }
+
     if (!selectedTopic) {
       toast.warning('Please select a topic first.');
+      return;
+    }
+    if (isUpcomingSemester) {
+      toast.error(
+        'This group is in an UPCOMING semester and cannot be modified yet.',
+      );
       return;
     }
     setIsProvisioning(true);
@@ -441,6 +455,11 @@ export default function GroupDetailsPage() {
   };
 
   const generateReport = async (type: string) => {
+    if (!isLeader) {
+      toast.error('Only group leaders can generate reports.');
+      return;
+    }
+
     setGeneratingReport(true);
     setReportError('');
     setReportResult(null);
@@ -541,6 +560,11 @@ export default function GroupDetailsPage() {
   }, [activeDraftVersion]);
 
   const handleSaveSrsDraft = async () => {
+    if (isUpcomingSemester) {
+      toast.error('This semester is not open for SRS interaction yet.');
+      return;
+    }
+
     if (!srsTitle.trim()) {
       toast.error('Nhập title trước khi lưu version.');
       return;
@@ -579,6 +603,11 @@ export default function GroupDetailsPage() {
   };
 
   const handleSubmitSrsVersion = async (versionId: string) => {
+    if (isUpcomingSemester) {
+      toast.error('This semester is not open for SRS interaction yet.');
+      return;
+    }
+
     setSubmittingVersionId(versionId);
     try {
       await documentSubmissionAPI.submitVersion(versionId);
@@ -618,6 +647,16 @@ export default function GroupDetailsPage() {
 
   const renderTopicSelector = () => (
     <div className="space-y-5">
+      {!isLeader ? (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Leader action required</AlertTitle>
+          <AlertDescription>
+            Only the group leader can select or change topic for this group.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="space-y-2">
         <label className="text-sm font-medium">Available Topics</label>
         <select
@@ -659,7 +698,9 @@ export default function GroupDetailsPage() {
         <Button
           className="flex-1 bg-blue-600 hover:bg-blue-700"
           onClick={handleProvisionWorkspace}
-          disabled={!isLeader || isProvisioning || !selectedTopic}
+          disabled={
+            !isLeader || isProvisioning || !selectedTopic || isUpcomingSemester
+          }
         >
           {isProvisioning ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -700,6 +741,16 @@ export default function GroupDetailsPage() {
           </p>
         </div>
       </div>
+
+      {isUpcomingSemester ? (
+        <Alert className="border-amber-500/40 bg-amber-500/10">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Upcoming semester</AlertTitle>
+          <AlertDescription>
+            Student actions are locked until this semester becomes active.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {(integrationIssue ||
         integrationStatusError ||
@@ -833,7 +884,20 @@ export default function GroupDetailsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {!group.topic || isChangingTopic ? (
+            {!group.topic ? (
+              isLeader ? (
+                renderTopicSelector()
+              ) : (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>No topic selected yet</AlertTitle>
+                  <AlertDescription>
+                    Please ask your group leader to choose or generate a topic
+                    in Topic Lab.
+                  </AlertDescription>
+                </Alert>
+              )
+            ) : isChangingTopic ? (
               renderTopicSelector()
             ) : (
               <div className="space-y-4">
@@ -1174,7 +1238,10 @@ export default function GroupDetailsPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button onClick={handleSaveSrsDraft} disabled={savingDraft}>
+            <Button
+              onClick={handleSaveSrsDraft}
+              disabled={savingDraft || isUpcomingSemester}
+            >
               {savingDraft ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -1346,7 +1413,7 @@ export default function GroupDetailsPage() {
             )}
 
             {!generatingReport && reportResult && (
-              <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-[800px] overflow-y-auto">
+              <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-200 overflow-y-auto">
                 <Alert className="mb-5 border-primary/20 bg-primary/5">
                   <Info className="h-4 w-4" />
                   <AlertTitle>Report Metadata</AlertTitle>

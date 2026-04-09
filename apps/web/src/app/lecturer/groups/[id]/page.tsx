@@ -4,193 +4,201 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { documentSubmissionAPI, groupAPI, reportAPI } from '@/lib/api';
-import {
-  ArrowLeft,
-  BarChart,
-  Bot,
-  Calendar,
-  CheckCircle2,
-  ExternalLink,
-  GitCommit,
-  Github,
-  Info,
-  Loader2,
-  MessageSquareText,
-  Users,
-  XCircle,
-} from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
-import useSWR from 'swr';
+            <CardContent className="pt-6">
+              <div className="flex flex-wrap gap-4 mb-6">
+                <Button
+                  variant="outline"
+                  className="flex items-center gap-2 border-primary/50 text-primary hover:bg-primary/10"
+                  onClick={() => router.push('/lecturer/review-points')}
+                >
+                  <Bot className="w-4 h-4" /> Open Review Point Scoring
+                </Button>
+                <Button
+                  onClick={() => generateReport('commits')}
+                  disabled={generatingReport || isUpcomingSemester}
+                  variant="outline"
+                  className="flex items-center gap-2 border-green-600/50 text-green-700 hover:bg-green-600/10"
+                >
+                  <BarChart className="w-4 h-4" /> Global Contributor Stats
+                </Button>
+              </div>
 
-export default function GroupDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const groupId = params.id as string;
+              {/* Status and Results area */}
+              {generatingReport && (
+                <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                  <p>
+                    Analyzing project data across Jira and GitHub... Please wait.
+                  </p>
+                </div>
+              )}
 
-  const {
-    data: group,
-    error: groupError,
-    isLoading: groupLoading,
-  } = useSWR(`/api/groups/${groupId}`, () => groupAPI.getGroupDetails(groupId));
+              {reportError && (
+                <div className="p-4 bg-red-50 text-red-600 rounded-md border border-red-200 mt-4">
+                  {reportError}
+                </div>
+              )}
 
-  const {
-    data: repos,
-    error: reposError,
-    isLoading: reposLoading,
-  } = useSWR(`/api/groups/${groupId}/repos`, () =>
-    groupAPI.getGroupRepos(groupId),
-  );
+              {!generatingReport && reportResult && (
+                <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-200 overflow-y-auto">
+                  <Alert className="mb-5 border-primary/20 bg-primary/5">
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Report Metadata</AlertTitle>
+                    <AlertDescription>
+                      <p>
+                        Generated:{' '}
+                        <strong>
+                          {reportGeneratedAt
+                            ? new Date(reportGeneratedAt).toLocaleString()
+                            : 'Unknown'}
+                        </strong>
+                      </p>
+                      <p>
+                        Data sources: Jira{' '}
+                        {group?.jira_project_key
+                          ? `(${group.jira_project_key})`
+                          : '(missing)'}{' '}
+                        and GitHub ({repos?.length || 0} repos)
+                      </p>
+                      {reportWarnings.length > 0 && (
+                        <ul className="mt-2 list-disc pl-5">
+                          {reportWarnings.map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </AlertDescription>
+                  </Alert>
 
-  const {
-    data: srsVersions,
-    error: srsError,
-    isLoading: srsLoading,
-    mutate: mutateSrsVersions,
-  } = useSWR(`/api/documents/group/${groupId}/versions`, () =>
-    documentSubmissionAPI.getGroupVersions(groupId),
-  );
+                  {reportType === 'srs' && (
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <pre className="whitespace-pre-wrap font-sans text-sm">
+                        {reportResult}
+                      </pre>
+                    </div>
+                  )}
+                  {reportType === 'commits' && (
+                    <div className="space-y-8">
+                      <h3 className="text-lg font-bold border-b pb-2">
+                        GitHub Contributions across Repositories
+                      </h3>
+                      {reportResult.repositories?.map((repo: any) => {
+                        const contributors: any[] = repo.contributors ?? [];
+                        const totalCommits = contributors.reduce(
+                          (sum: number, c: any) => sum + (c.commits ?? 0),
+                          0,
+                        );
+                        const avgCommits =
+                          contributors.length > 0
+                            ? totalCommits / contributors.length
+                            : 0;
+                        const freeRiderThreshold = avgCommits * 0.25;
+                        const freeRiderCount = contributors.filter(
+                          (c: any) => c.commits < freeRiderThreshold,
+                        ).length;
 
-  const [activeRepoId, setActiveRepoId] = useState<string | null>(null);
-  const [commits, setCommits] = useState<any[]>([]);
-  const [commitsLoading, setCommitsLoading] = useState(false);
-  const [commitsError, setCommitsError] = useState('');
-
-  // Analytics Report States
-  const [reportResult, setReportResult] = useState<any>(null);
-  const [reportType, setReportType] = useState<string>('');
-  const [generatingReport, setGeneratingReport] = useState(false);
-  const [reportError, setReportError] = useState('');
-  const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
-    null,
-  );
-  const [reviewingVersionId, setReviewingVersionId] = useState<string | null>(
-    null,
-  );
-  const [gradingVersionId, setGradingVersionId] = useState<string | null>(null);
-  const [feedbackByVersion, setFeedbackByVersion] = useState<
-    Record<string, string>
-  >({});
-  const [scoreByVersion, setScoreByVersion] = useState<Record<string, string>>(
-    {},
-  );
-
-  const generateReport = async (type: string) => {
-    setGeneratingReport(true);
-    setReportError('');
-    setReportResult(null);
-    setReportType(type);
-    try {
-      if (type === 'srs') {
-        const res = await reportAPI.generateSrs(groupId);
-        setReportResult(res.markdown);
-      } else if (type === 'commits') {
-        const res = await reportAPI.getCommitsStats(groupId);
-        setReportResult(res);
-      }
-      setReportGeneratedAt(new Date().toISOString());
-    } catch (err: any) {
-      setReportError(
-        err.message ||
-          'Error generating report. Ensure Jira/GitHub is fully linked.',
-      );
-    } finally {
-      setGeneratingReport(false);
-    }
-  };
-
-  const reportWarnings = useMemo(() => {
-    const warnings: string[] = [];
-    if (!group?.jira_project_key) {
-      warnings.push(
-        'Jira project is not linked. Assignment insights can be incomplete.',
-      );
-    }
-    if (!repos || repos.length === 0) {
-      warnings.push(
-        'No linked repositories detected. Commit analytics can be empty.',
-      );
-    }
-    return warnings;
-  }, [group?.jira_project_key, repos]);
-
-  useEffect(() => {
-    if (repos && repos.length > 0 && !activeRepoId) {
-      setActiveRepoId(repos[0].id);
-    }
-  }, [repos, activeRepoId]);
-
-  useEffect(() => {
-    if (activeRepoId) {
-      loadCommits(activeRepoId);
-    }
-  }, [activeRepoId]);
-
-  const loadCommits = async (repoId: string) => {
-    setCommitsLoading(true);
-    setCommitsError('');
-    try {
-      const data = await groupAPI.getGroupRepoCommits(groupId, repoId);
-      setCommits(data);
-    } catch (err: any) {
-      setCommitsError(err.message || 'Failed to fetch commits');
-    } finally {
-      setCommitsLoading(false);
-    }
-  };
-
-  const handleReviewDecision = async (
-    versionId: string,
-    status: 'APPROVED' | 'REJECTED',
-  ) => {
-    setReviewingVersionId(versionId);
-    try {
-      await documentSubmissionAPI.gradeDocument(versionId, {
-        status,
-        feedback: feedbackByVersion[versionId]?.trim() || undefined,
-      });
-      await mutateSrsVersions();
-    } catch (error: any) {
-      setReportError(error?.message || 'Failed to update review status.');
-    } finally {
-      setReviewingVersionId(null);
-    }
-  };
-
-  const handleGradeVersion = async (versionId: string) => {
-    const scoreRaw = scoreByVersion[versionId];
-    const parsedScore =
-      scoreRaw === undefined || scoreRaw === '' ? NaN : Number(scoreRaw);
-
-    if (Number.isNaN(parsedScore)) {
-      setReportError('Please enter a valid numeric score before grading.');
-      return;
-    }
-
-    setGradingVersionId(versionId);
-    try {
-      await documentSubmissionAPI.gradeDocument(versionId, {
-        status: 'GRADED',
-        score: parsedScore,
-        feedback: feedbackByVersion[versionId]?.trim() || undefined,
-      });
-      await mutateSrsVersions();
-    } catch (error: any) {
-      setReportError(error?.message || 'Failed to grade this version.');
-    } finally {
-      setGradingVersionId(null);
-    }
-  };
-
-  if (groupLoading) {
-    return (
+                        return (
+                          <div key={repo.repository} className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-semibold text-primary">
+                                📦 {repo.repository}
+                              </h4>
+                              {freeRiderCount > 0 && (
+                                <span className="text-xs font-semibold bg-red-100 text-red-700 border border-red-300 px-2 py-1 rounded-full animate-pulse">
+                                  ⚠️ {freeRiderCount} suspected free-rider
+                                  {freeRiderCount > 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {contributors.map((contributor: any) => {
+                                const isFreeRider =
+                                  contributor.commits < freeRiderThreshold;
+                                const contribution =
+                                  totalCommits > 0
+                                    ? Math.round(
+                                        (contributor.commits / totalCommits) *
+                                          100,
+                                      )
+                                    : 0;
+                                return (
+                                  <div
+                                    key={contributor.author}
+                                    className={`p-4 border shadow-sm rounded-lg bg-card flex flex-col items-center justify-center text-center transition-colors ${
+                                      isFreeRider
+                                        ? 'border-red-400 bg-red-50 dark:bg-red-950/20'
+                                        : 'border-border'
+                                    }`}
+                                  >
+                                    {isFreeRider && (
+                                      <span className="text-[10px] font-bold text-red-600 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full mb-2">
+                                        ⚠️ FREE RIDER
+                                      </span>
+                                    )}
+                                    {contributor.avatar_url ? (
+                                      <img
+                                        src={contributor.avatar_url}
+                                        className={`w-12 h-12 rounded-full mb-3 shadow-sm border-2 ${isFreeRider ? 'border-red-400' : 'border-border'}`}
+                                        alt={contributor.author}
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-12 h-12 rounded-full mb-3 flex items-center justify-center font-bold text-lg ${isFreeRider ? 'bg-red-100 text-red-700' : 'bg-primary/20 text-primary'}`}
+                                      >
+                                        {contributor.author?.[0]}
+                                      </div>
+                                    )}
+                                    <span className="font-bold text-sm">
+                                      {contributor.author}
+                                    </span>
+                                    <span
+                                      className={`text-xs font-semibold mb-2 mt-1 px-2 py-1 rounded ${isFreeRider ? 'bg-red-100 text-red-700' : 'bg-muted text-muted-foreground'}`}
+                                    >
+                                      {contributor.commits} commits (
+                                      {contribution}%)
+                                    </span>
+                                    <div className="flex gap-4 text-xs w-full justify-center mt-2 border-t pt-2">
+                                      <span className="text-green-600 font-bold flex flex-col">
+                                        <span>+{contributor.lines_added}</span>
+                                        <span className="text-[10px] text-muted-foreground font-normal">
+                                          added
+                                        </span>
+                                      </span>
+                                      <span className="text-red-500 font-bold flex flex-col">
+                                        <span>-{contributor.lines_deleted}</span>
+                                        <span className="text-[10px] text-muted-foreground font-normal">
+                                          deleted
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {contributors.length === 0 && (
+                                <p className="text-sm text-muted-foreground py-2 col-span-full">
+                                  No contributor stats found. (Repository might be
+                                  empty or no code pushed yet)
+                                </p>
+                              )}
+                            </div>
+                            {contributors.length > 0 && (
+                              <div className="flex gap-4 text-xs text-muted-foreground border-t pt-2">
+                                <span>
+                                  👥 {contributors.length} contributors
+                                </span>
+                                <span>📝 {totalCommits} total commits</span>
+                                <span>
+                                  📊 avg {Math.round(avgCommits)} commits/person
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
       <div className="p-8">
         <Skeleton className="h-12 w-1/3 mb-4" />
         <Skeleton className="h-64 w-full" />
@@ -234,6 +242,16 @@ export default function GroupDetailPage() {
           )}
         </div>
       </div>
+
+      {isUpcomingSemester ? (
+        <Alert className="border-amber-500/40 bg-amber-500/10">
+          <Info className="h-4 w-4" />
+          <AlertTitle>Upcoming semester</AlertTitle>
+          <AlertDescription>
+            Lecturer actions are locked until this semester becomes active.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {/* ── Members Section ─────────────────────────────── */}
       <Card className="shadow-sm">
@@ -412,7 +430,7 @@ export default function GroupDetailPage() {
                       onClick={() =>
                         void handleReviewDecision(version.id, 'APPROVED')
                       }
-                      disabled={!isPending || isBusy}
+                      disabled={!isPending || isBusy || isUpcomingSemester}
                     >
                       {reviewingVersionId === version.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -427,7 +445,7 @@ export default function GroupDetailPage() {
                       onClick={() =>
                         void handleReviewDecision(version.id, 'REJECTED')
                       }
-                      disabled={!isPending || isBusy}
+                      disabled={!isPending || isBusy || isUpcomingSemester}
                     >
                       {reviewingVersionId === version.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -450,12 +468,13 @@ export default function GroupDetailPage() {
                           [version.id]: event.target.value,
                         }))
                       }
+                      disabled={isUpcomingSemester}
                       placeholder="Score"
                     />
                     <Button
                       size="sm"
                       onClick={() => void handleGradeVersion(version.id)}
-                      disabled={isBusy}
+                      disabled={isBusy || isUpcomingSemester}
                     >
                       {gradingVersionId === version.id ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -609,6 +628,16 @@ export default function GroupDetailPage() {
                           </div>
                         </div>
                       </div>
+
+                      {isUpcomingSemester ? (
+                        <Alert className="border-amber-500/40 bg-amber-500/10">
+                          <Info className="h-4 w-4" />
+                          <AlertTitle>Upcoming semester</AlertTitle>
+                          <AlertDescription>
+                            Lecturer actions are locked until this semester becomes active.
+                          </AlertDescription>
+                        </Alert>
+                      ) : null}
                     ))}
                   </div>
                 )}
@@ -643,7 +672,7 @@ export default function GroupDetailPage() {
                   disabled={generatingReport}
                   variant="outline"
                   className="flex items-center gap-2 border-green-600/50 text-green-700 hover:bg-green-600/10"
-                >
+                      disabled={!isPending || isBusy || isUpcomingSemester}
                   <BarChart className="w-4 h-4" /> Global Contributor Stats
                 </Button>
               </div>
@@ -651,7 +680,7 @@ export default function GroupDetailPage() {
               {/* Status and Results area */}
               {generatingReport && (
                 <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
-                  <Bot className="w-8 h-8 mb-4 animate-bounce text-primary" />
+                      disabled={!isPending || isBusy || isUpcomingSemester}
                   <p>
                     Analyzing project data across Jira and GitHub... Please
                     wait.
@@ -667,12 +696,13 @@ export default function GroupDetailPage() {
 
               {!generatingReport && reportResult && (
                 <div className="mt-4 p-6 bg-background rounded-lg border shadow-inner max-h-200 overflow-y-auto">
+                      disabled={isUpcomingSemester}
                   <Alert className="mb-5 border-primary/20 bg-primary/5">
                     <Info className="h-4 w-4" />
                     <AlertTitle>Report Metadata</AlertTitle>
                     <AlertDescription>
                       <p>
-                        Type: <strong>{reportType.toUpperCase()}</strong> |
+                      disabled={isBusy || isUpcomingSemester}
                         Generated:{' '}
                         <strong>
                           {reportGeneratedAt
