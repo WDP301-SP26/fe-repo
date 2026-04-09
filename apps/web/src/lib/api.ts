@@ -895,7 +895,18 @@ export interface StudentReviewStatus {
 
 export interface StudentPublishedScoresResponse {
   semester: SemesterInfo | null;
-  milestones: Array<{
+  groups: Array<{
+    group_id: string;
+    group_name: string;
+    topic_name: string | null;
+    checkpoints: {
+      checkpoint_1: number | null;
+      checkpoint_2: number | null;
+      checkpoint_3: number | null;
+    };
+    total_score: number | null;
+  }>;
+  milestones?: Array<{
     milestone: ReviewMilestoneInfo;
     groups: Array<{
       group_id: string;
@@ -906,13 +917,8 @@ export interface StudentPublishedScoresResponse {
         commit_contribution_score: number | null;
         review_milestone_score: number | null;
         total_score: number | null;
-        auto_score?: number | null;
-        final_score?: number | null;
-        override_reason?: string | null;
       };
       lecturer_note: string | null;
-      scoring?: GroupReviewSummary['scoring'];
-      review_sessions?: ReviewSessionTimelineItem[];
     }>;
   }>;
 }
