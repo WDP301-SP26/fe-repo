@@ -31,6 +31,7 @@ export default function TopicLabPage() {
   const isLeader =
     group?.members?.find((m: any) => m.id === user?.id)?.role_in_group ===
     'LEADER';
+  const isUpcomingSemester = group?.semester_status === 'UPCOMING';
 
   const [mode, setMode] = useState<'AUTO' | 'REFINE'>('AUTO');
   const [seedTopicName, setSeedTopicName] = useState('');
@@ -44,6 +45,11 @@ export default function TopicLabPage() {
   const [saving, setSaving] = useState(false);
 
   const handleGenerate = async () => {
+    if (isUpcomingSemester) {
+      toast.error('This semester is not open for Topic Lab yet.');
+      return;
+    }
+
     if (mode === 'REFINE' && !seedTopicName.trim()) {
       toast.warning('Please provide a seed topic name for refine mode.');
       return;
@@ -72,6 +78,11 @@ export default function TopicLabPage() {
   };
 
   const handleSaveAndApply = async () => {
+    if (isUpcomingSemester) {
+      toast.error('This semester is not open for topic changes yet.');
+      return;
+    }
+
     if (!draft?.topic_name) {
       toast.warning('Please generate a draft first.');
       return;
@@ -140,6 +151,15 @@ export default function TopicLabPage() {
         </div>
       </div>
 
+      {isUpcomingSemester ? (
+        <Alert className="border-amber-500/40 bg-amber-500/10">
+          <AlertTitle>Upcoming semester</AlertTitle>
+          <AlertDescription>
+            Topic Lab is locked until the semester becomes active.
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -153,6 +173,7 @@ export default function TopicLabPage() {
               type="button"
               variant={mode === 'AUTO' ? 'default' : 'outline'}
               onClick={() => setMode('AUTO')}
+              disabled={isUpcomingSemester}
             >
               AI Suggest New Topic
             </Button>
@@ -160,6 +181,7 @@ export default function TopicLabPage() {
               type="button"
               variant={mode === 'REFINE' ? 'default' : 'outline'}
               onClick={() => setMode('REFINE')}
+              disabled={isUpcomingSemester}
             >
               AI Refine My Topic Name
             </Button>
@@ -229,7 +251,7 @@ export default function TopicLabPage() {
 
           <Button
             onClick={handleGenerate}
-            disabled={generating}
+            disabled={generating || isUpcomingSemester}
             className="w-full"
           >
             {generating ? (
@@ -299,7 +321,7 @@ export default function TopicLabPage() {
             <Button
               className="w-full bg-emerald-600 hover:bg-emerald-700"
               onClick={handleSaveAndApply}
-              disabled={saving}
+              disabled={saving || isUpcomingSemester}
             >
               {saving ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
