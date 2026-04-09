@@ -468,6 +468,7 @@ export interface DocumentSubmissionVersion {
   document_url: string | null;
   reference: string | null;
   change_summary: string | null;
+  content_markdown: string | null;
   status: DocumentStatus;
   score: number | null;
   feedback: string | null;
@@ -496,6 +497,7 @@ export const documentSubmissionAPI = {
       reference?: string;
       document_url?: string;
       change_summary?: string;
+      content_markdown?: string;
       base_submission_id?: string;
     },
   ) =>
@@ -506,6 +508,20 @@ export const documentSubmissionAPI = {
         body: JSON.stringify(data),
       },
     ),
+  updateDraftVersion: (
+    submissionId: string,
+    data: {
+      title?: string;
+      reference?: string;
+      document_url?: string;
+      change_summary?: string;
+      content_markdown?: string;
+    },
+  ) =>
+    fetchAPI<DocumentSubmissionVersion>(`/api/documents/${submissionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   submitVersion: (submissionId: string) =>
     fetchAPI<DocumentSubmissionVersion>(
       `/api/documents/${submissionId}/submit`,
@@ -520,6 +536,7 @@ export const documentSubmissionAPI = {
       reference?: string;
       document_url?: string;
       change_summary?: string;
+      content_markdown?: string;
       base_submission_id?: string;
     },
   ) =>

@@ -59,7 +59,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -178,6 +178,7 @@ export default function GroupDetailsPage() {
   const [srsTitle, setSrsTitle] = useState('');
   const [srsReference, setSrsReference] = useState('');
   const [srsChangeSummary, setSrsChangeSummary] = useState('');
+  const [srsContentMarkdown, setSrsContentMarkdown] = useState('');
   const [savingDraft, setSavingDraft] = useState(false);
   const [submittingVersionId, setSubmittingVersionId] = useState<string | null>(
     null,
@@ -450,6 +451,7 @@ export default function GroupDetailsPage() {
       if (type === 'srs') {
         const res = await reportAPI.generateSrs(groupId);
         setReportResult(res.markdown);
+        setSrsContentMarkdown(res.markdown || '');
       } else if (type === 'assignments') {
         const res = await reportAPI.getAssignments(groupId);
         setReportResult(res);
@@ -510,13 +512,33 @@ export default function GroupDetailsPage() {
     reportResult?.warnings,
   ]);
 
-  const latestDraftVersion = useMemo(
-    () =>
-      srsVersions?.find((version) => version.status === 'DRAFT') ||
-      srsVersions?.[0] ||
-      null,
+  const activeDraftVersion = useMemo(
+    () => srsVersions?.find((version) => version.status === 'DRAFT') || null,
     [srsVersions],
   );
+
+  const latestVersion = useMemo(() => srsVersions?.[0] || null, [srsVersions]);
+
+  useEffect(() => {
+    if (!activeDraftVersion) {
+      return;
+    }
+
+    setSrsTitle((previous) => previous || activeDraftVersion.title || '');
+    setSrsReference(
+      (previous) =>
+        previous ||
+        activeDraftVersion.reference ||
+        activeDraftVersion.document_url ||
+        '',
+    );
+    setSrsChangeSummary(
+      (previous) => previous || activeDraftVersion.change_summary || '',
+    );
+    setSrsContentMarkdown(
+      (previous) => previous || activeDraftVersion.content_markdown || '',
+    );
+  }, [activeDraftVersion]);
 
   const handleSaveSrsDraft = async () => {
     if (!srsTitle.trim()) {
@@ -526,16 +548,29 @@ export default function GroupDetailsPage() {
 
     setSavingDraft(true);
     try {
-      await documentSubmissionAPI.saveDraftVersion(groupId, {
+      const payload = {
         title: srsTitle.trim(),
         reference: srsReference.trim() || undefined,
         change_summary: srsChangeSummary.trim() || undefined,
-        base_submission_id: latestDraftVersion?.id || undefined,
-      });
-      toast.success('Đã lưu SRS draft version.');
+        content_markdown: srsContentMarkdown.trim() || undefined,
+      };
+
+      if (activeDraftVersion) {
+        await documentSubmissionAPI.updateDraftVersion(activeDraftVersion.id, {
+          ...payload,
+        });
+        toast.success('Updated current draft version.');
+      } else {
+        await documentSubmissionAPI.saveDraftVersion(groupId, {
+          ...payload,
+          base_submission_id: latestVersion?.id || undefined,
+        });
+        toast.success('Created new draft version.');
+      }
+
       await mutateSrsVersions();
     } catch (error) {
-      toast.error('Không thể lưu draft version.', {
+      toast.error('Failed to save draft version.', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
@@ -1088,7 +1123,8 @@ export default function GroupDetailsPage() {
             <FileText className="h-5 w-5 text-primary" /> SRS Versions
           </CardTitle>
           <CardDescription>
-            Luu draft version, chon version can submit va theo doi lich su SRS.
+            Save draft versions, submit selected versions, and track SRS
+            history.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
@@ -1125,6 +1161,18 @@ export default function GroupDetailsPage() {
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              SRS content (Markdown, optional)
+            </label>
+            <textarea
+              className="flex min-h-48 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={srsContentMarkdown}
+              onChange={(event) => setSrsContentMarkdown(event.target.value)}
+              placeholder="# Software Requirements Specification\n\n## 1. Introduction\n..."
+            />
+          </div>
+
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleSaveSrsDraft} disabled={savingDraft}>
               {savingDraft ? (
@@ -1152,7 +1200,7 @@ export default function GroupDetailsPage() {
 
           {!loadingSrsVersions && (srsVersions || []).length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Chua co SRS version nao. Hay tao draft dau tien.
+              No SRS versions yet. Create your first draft.
             </p>
           )}
 
@@ -1224,7 +1272,7 @@ export default function GroupDetailsPage() {
                     ) : null}
                     {!isDraft ? (
                       <span className="text-xs text-muted-foreground">
-                        Version này đã được gửi hoặc đã được chấm.
+                        This version has already been submitted or graded.
                       </span>
                     ) : null}
                   </div>
