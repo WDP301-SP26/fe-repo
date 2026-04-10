@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   BookOpen,
   ClipboardCheck,
+  FileText,
   FolderGit2,
   Home,
   KanbanSquare,
@@ -36,6 +37,7 @@ export const lecturerMenuItems: MenuItem[] = [
     url: '/lecturer/review-points',
     icon: ClipboardCheck,
   },
+  { title: 'SRS Reviews', url: '/lecturer/srs-reviews', icon: FileText },
   { title: 'Chat', url: '/lecturer/chat', icon: MessageSquare },
   { title: 'Settings', url: '/lecturer/settings', icon: Settings },
 ];

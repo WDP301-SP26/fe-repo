@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { groupAPI, reportAPI } from '@/lib/api';
+import { useSrsDocument } from '@/hooks/use-api';
+import { SrsStatusBadge } from '@/components/srs-status-badge';
 import {
   ArrowLeft,
   BarChart,
@@ -44,6 +46,8 @@ export default function GroupDetailPage() {
   } = useSWR(`/api/groups/${groupId}/repos`, () =>
     groupAPI.getGroupRepos(groupId),
   );
+
+  const { data: srsDoc } = useSrsDocument(groupId);
 
   const [activeRepoId, setActiveRepoId] = useState<string | null>(null);
   const [commits, setCommits] = useState<any[]>([]);
@@ -375,6 +379,61 @@ export default function GroupDetailPage() {
                     ))}
                   </div>
                 )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* SRS Document Status */}
+        <div className="md:col-span-3 space-y-4 pt-6 border-t">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">SRS Document</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {srsDoc ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {srsDoc.versions.length} version(s) created
+                    </span>
+                    {srsDoc.draft_content && (
+                      <span className="text-xs text-muted-foreground">
+                        Draft in progress
+                      </span>
+                    )}
+                  </div>
+                  {srsDoc.versions.length > 0 && (
+                    <div className="space-y-2">
+                      {srsDoc.versions.slice(0, 3).map((v) => (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between rounded border p-2 text-sm"
+                        >
+                          <span>v{v.version_number}</span>
+                          <SrsStatusBadge status={v.status} />
+                          {v.status === 'SUBMITTED' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                router.push(
+                                  `/lecturer/srs-reviews/${groupId}/${v.id}`,
+                                )
+                              }
+                            >
+                              Review
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No SRS document created yet for this group.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

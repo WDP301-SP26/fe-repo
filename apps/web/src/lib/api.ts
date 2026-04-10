@@ -1284,3 +1284,91 @@ export const adminSemesterAPI = {
       },
     ),
 };
+
+// ── SRS Version Control ─────────────────────────────────
+
+export type SrsVersionStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'CHANGES_REQUESTED';
+
+export interface SrsVersion {
+  id: string;
+  srs_document_id: string;
+  version_number: number;
+  content: string;
+  status: SrsVersionStatus;
+  submitted_by_id: string;
+  submitted_at: string | null;
+  reviewed_by_id: string | null;
+  reviewed_at: string | null;
+  feedback: string | null;
+  created_at: string;
+  submittedBy?: { id: string; full_name: string; avatar_url: string | null };
+  reviewedBy?: {
+    id: string;
+    full_name: string;
+    avatar_url: string | null;
+  } | null;
+  srsDocument?: SrsDocument;
+}
+
+export interface SrsDocument {
+  id: string;
+  group_id: string;
+  draft_content: string | null;
+  draft_updated_at: string | null;
+  draft_updated_by_id: string | null;
+  created_at: string;
+  updated_at: string;
+  versions: SrsVersion[];
+}
+
+export interface SrsSubmissionItem extends SrsVersion {
+  srsDocument: SrsDocument & {
+    group: {
+      id: string;
+      name: string;
+      class_id: string;
+      class: { id: string; name: string };
+    };
+  };
+}
+
+export const srsAPI = {
+  getDocument: (groupId: string) =>
+    fetchAPI<SrsDocument>(`/api/srs/group/${groupId}`),
+  generateDraft: (groupId: string) =>
+    fetchAPI<SrsDocument>(`/api/srs/group/${groupId}/generate`, {
+      method: 'POST',
+    }),
+  updateDraft: (groupId: string, content: string) =>
+    fetchAPI<SrsDocument>(`/api/srs/group/${groupId}/draft`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    }),
+  createVersion: (groupId: string) =>
+    fetchAPI<SrsVersion>(`/api/srs/group/${groupId}/versions`, {
+      method: 'POST',
+    }),
+  submitVersion: (groupId: string, versionId: string) =>
+    fetchAPI<SrsVersion>(
+      `/api/srs/group/${groupId}/versions/${versionId}/submit`,
+      { method: 'POST' },
+    ),
+  getVersion: (groupId: string, versionId: string) =>
+    fetchAPI<SrsVersion>(`/api/srs/group/${groupId}/versions/${versionId}`),
+  reviewVersion: (
+    versionId: string,
+    data: { status: 'APPROVED' | 'CHANGES_REQUESTED'; feedback?: string },
+  ) =>
+    fetchAPI<SrsVersion>(`/api/srs/versions/${versionId}/review`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  getLecturerSubmissions: (classId?: string) =>
+    fetchAPI<SrsSubmissionItem[]>(
+      `/api/srs/lecturer/submissions${classId ? `?classId=${classId}` : ''}`,
+    ),
+};
