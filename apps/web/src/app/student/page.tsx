@@ -281,34 +281,96 @@ export default function StudentDashboardPage() {
             <div className="text-sm text-muted-foreground">
               Loading published scores...
             </div>
-          ) : publishedScores?.groups?.length ? (
-            <div className="space-y-2">
-              {publishedScores.groups.map((group) => (
-                <div key={group.group_id} className="rounded-md border p-3">
-                  <div className="font-medium">{group.group_name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {group.topic_name || 'Topic not finalized yet'}
-                  </div>
-                  <div className="mt-3 grid gap-2 text-sm md:grid-cols-4">
-                    <div>
-                      Checkpoint 1:{' '}
-                      <strong>{group.checkpoints.checkpoint_1 ?? '-'}</strong>
-                    </div>
-                    <div>
-                      Checkpoint 2:{' '}
-                      <strong>{group.checkpoints.checkpoint_2 ?? '-'}</strong>
-                    </div>
-                    <div>
-                      Checkpoint 3:{' '}
-                      <strong>{group.checkpoints.checkpoint_3 ?? '-'}</strong>
-                    </div>
-                    <div>
-                      Total: <strong>{group.total_score ?? '-'}</strong>
-                    </div>
-                  </div>
+          ) : publishedScores?.milestones?.length ? (
+            publishedScores.milestones.map((item) => (
+              <div key={item.milestone.code} className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge>{item.milestone.label}</Badge>
+                  <span className="text-xs text-muted-foreground">
+                    Week {item.milestone.week_start}-{item.milestone.week_end}
+                  </span>
                 </div>
-              ))}
-            </div>
+                {item.milestone.description && (
+                  <p className="mt-1 text-xs italic text-muted-foreground">
+                    {item.milestone.description}
+                  </p>
+                )}
+
+                <div className="mt-3 space-y-2">
+                  {item.groups.map((group) => (
+                    <div
+                      key={`${item.milestone.code}-${group.group_id}`}
+                      className="rounded-md border p-3"
+                    >
+                      <div className="font-medium">{group.group_name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {group.topic_name || 'Topic not finalized yet'}
+                      </div>
+                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          Task:{' '}
+                          <strong>
+                            {group.scores.task_progress_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Commit:{' '}
+                          <strong>
+                            {group.scores.commit_contribution_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Review:{' '}
+                          <strong>
+                            {group.scores.review_milestone_score ?? '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Total:{' '}
+                          <strong>{group.scores.total_score ?? '-'}</strong>
+                        </div>
+                      </div>
+                      <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
+                        <div>
+                          Auto:{' '}
+                          <strong>{group.scores.auto_score ?? '-'}</strong>
+                        </div>
+                        <div>
+                          Final:{' '}
+                          <strong>{group.scores.final_score ?? '-'}</strong>
+                        </div>
+                        <div>
+                          Attendance:{' '}
+                          <strong>
+                            {group.scoring?.metrics.attendance_ratio !== null &&
+                            group.scoring?.metrics.attendance_ratio !==
+                              undefined
+                              ? `${Math.round(group.scoring.metrics.attendance_ratio * 100)}%`
+                              : '-'}
+                          </strong>
+                        </div>
+                        <div>
+                          Problems:{' '}
+                          <strong>
+                            {group.scoring?.metrics.total_problems ?? '-'}
+                          </strong>
+                        </div>
+                      </div>
+                      {group.scores.override_reason ? (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Override reason: {group.scores.override_reason}
+                        </div>
+                      ) : null}
+                      {group.lecturer_note ? (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Note: {group.lecturer_note}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
           ) : (
             <div className="text-sm text-muted-foreground">
               No published checkpoint scores yet.

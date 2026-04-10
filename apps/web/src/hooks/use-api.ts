@@ -1,6 +1,12 @@
 import { useAuthStore } from '@/stores/authStore';
 import useSWR from 'swr';
-import { classAPI, groupAPI, notificationAPI, topicAPI } from '../lib/api';
+import {
+  classAPI,
+  groupAPI,
+  notificationAPI,
+  srsAPI,
+  topicAPI,
+} from '../lib/api';
 
 // Classes
 export function useClasses() {
@@ -33,6 +39,24 @@ export function useMyGroups() {
 export function useTopics() {
   const token = useAuthStore((state) => state.token);
   return useSWR(token ? '/api/topics' : null, topicAPI.getTopics);
+}
+
+// SRS
+export function useSrsDocument(groupId: string | null) {
+  const token = useAuthStore((state) => state.token);
+  return useSWR(token && groupId ? `/api/srs/group/${groupId}` : null, () =>
+    srsAPI.getDocument(groupId!),
+  );
+}
+
+export function useSrsLecturerSubmissions(classId?: string) {
+  const token = useAuthStore((state) => state.token);
+  const key = classId
+    ? `/api/srs/lecturer/submissions?classId=${classId}`
+    : '/api/srs/lecturer/submissions';
+  return useSWR(token ? key : null, () =>
+    srsAPI.getLecturerSubmissions(classId),
+  );
 }
 
 // Notifications

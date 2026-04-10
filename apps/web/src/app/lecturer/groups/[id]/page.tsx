@@ -10,21 +10,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { documentSubmissionAPI, groupAPI, reportAPI } from '@/lib/api';
+import { useSrsDocument } from '@/hooks/use-api';
+import { SrsStatusBadge } from '@/components/srs-status-badge';
+import { groupAPI, reportAPI } from '@/lib/api';
 import {
   ArrowLeft,
   BarChart,
   Bot,
   Calendar,
-  CheckCircle2,
   ExternalLink,
   GitCommit,
   Github,
   Info,
-  Loader2,
-  MessageSquareText,
   Users,
-  XCircle,
 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -49,14 +47,7 @@ export default function GroupDetailPage() {
     groupAPI.getGroupRepos(groupId),
   );
 
-  const {
-    data: srsVersions,
-    error: srsError,
-    isLoading: srsLoading,
-    mutate: mutateSrsVersions,
-  } = useSWR(`/api/documents/group/${groupId}/versions`, () =>
-    documentSubmissionAPI.getGroupVersions(groupId),
-  );
+  const { data: srsDoc } = useSrsDocument(groupId);
 
   const [activeRepoId, setActiveRepoId] = useState<string | null>(null);
   const [commits, setCommits] = useState<any[]>([]);
@@ -71,27 +62,13 @@ export default function GroupDetailPage() {
   const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
     null,
   );
-  const [reviewingVersionId, setReviewingVersionId] = useState<string | null>(
-    null,
-  );
-  const [gradingVersionId, setGradingVersionId] = useState<string | null>(null);
-  const [feedbackByVersion, setFeedbackByVersion] = useState<
-    Record<string, string>
-  >({});
-  const [scoreByVersion, setScoreByVersion] = useState<Record<string, string>>(
-    {},
-  );
-
   const generateReport = async (type: string) => {
     setGeneratingReport(true);
     setReportError('');
     setReportResult(null);
     setReportType(type);
     try {
-      if (type === 'srs') {
-        const res = await reportAPI.generateSrs(groupId);
-        setReportResult(res.markdown);
-      } else if (type === 'commits') {
+      if (type === 'commits') {
         const res = await reportAPI.getCommitsStats(groupId);
         setReportResult(res);
       }
@@ -143,49 +120,6 @@ export default function GroupDetailPage() {
       setCommitsError(err.message || 'Failed to fetch commits');
     } finally {
       setCommitsLoading(false);
-    }
-  };
-
-  const handleReviewDecision = async (
-    versionId: string,
-    status: 'APPROVED' | 'REJECTED',
-  ) => {
-    setReviewingVersionId(versionId);
-    try {
-      await documentSubmissionAPI.gradeDocument(versionId, {
-        status,
-        feedback: feedbackByVersion[versionId]?.trim() || undefined,
-      });
-      await mutateSrsVersions();
-    } catch (error: any) {
-      setReportError(error?.message || 'Failed to update review status.');
-    } finally {
-      setReviewingVersionId(null);
-    }
-  };
-
-  const handleGradeVersion = async (versionId: string) => {
-    const scoreRaw = scoreByVersion[versionId];
-    const parsedScore =
-      scoreRaw === undefined || scoreRaw === '' ? NaN : Number(scoreRaw);
-
-    if (Number.isNaN(parsedScore)) {
-      setReportError('Please enter a valid numeric score before grading.');
-      return;
-    }
-
-    setGradingVersionId(versionId);
-    try {
-      await documentSubmissionAPI.gradeDocument(versionId, {
-        status: 'GRADED',
-        score: parsedScore,
-        feedback: feedbackByVersion[versionId]?.trim() || undefined,
-      });
-      await mutateSrsVersions();
-    } catch (error: any) {
-      setReportError(error?.message || 'Failed to grade this version.');
-    } finally {
-      setGradingVersionId(null);
     }
   };
 
@@ -296,177 +230,6 @@ export default function GroupDetailPage() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-sm border-primary/20">
-        <CardHeader className="pb-4 border-b bg-muted/10">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <MessageSquareText className="h-5 w-5" /> SRS Review Panel
-          </CardTitle>
-          <CardDescription>
-            Read submitted SRS versions, then approve/reject and grade with
-            feedback for students.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-5 space-y-4">
-          {srsLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          ) : null}
-
-          {!srsLoading && srsError ? (
-            <Alert variant="destructive">
-              <AlertTitle>Failed to load SRS versions</AlertTitle>
-              <AlertDescription>
-                {(srsError as Error).message ||
-                  'Unable to fetch SRS submissions for this group.'}
-              </AlertDescription>
-            </Alert>
-          ) : null}
-
-          {!srsLoading && !srsError && (srsVersions || []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No SRS versions have been submitted yet.
-            </p>
-          ) : null}
-
-          <div className="space-y-4">
-            {(srsVersions || []).map((version: any) => {
-              const isPending = version.status === 'PENDING';
-              const isBusy =
-                reviewingVersionId === version.id ||
-                gradingVersionId === version.id;
-
-              return (
-                <div
-                  key={version.id}
-                  className="rounded-md border bg-background p-4 space-y-3"
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <p className="font-semibold">
-                        {version.title} · v{version.version_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(version.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-full border px-2 py-0.5 text-xs">
-                        {version.status}
-                      </span>
-                      {version.status === 'APPROVED' ? (
-                        <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
-                          Approved version
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-muted-foreground">
-                    Reference:{' '}
-                    {version.reference || version.document_url || 'N/A'}
-                  </div>
-
-                  {version.change_summary ? (
-                    <div className="rounded-md border bg-muted/30 p-3 text-xs">
-                      <span className="font-medium">Change summary: </span>
-                      {version.change_summary}
-                    </div>
-                  ) : null}
-
-                  <div className="rounded-md border bg-muted/10 p-3">
-                    <p className="text-xs font-medium mb-2">SRS markdown</p>
-                    <pre className="whitespace-pre-wrap text-xs max-h-64 overflow-y-auto">
-                      {version.content_markdown ||
-                        'No markdown content stored for this version.'}
-                    </pre>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium">
-                      Lecturer feedback
-                    </label>
-                    <textarea
-                      className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={
-                        feedbackByVersion[version.id] ?? version.feedback ?? ''
-                      }
-                      onChange={(event) =>
-                        setFeedbackByVersion((previous) => ({
-                          ...previous,
-                          [version.id]: event.target.value,
-                        }))
-                      }
-                      placeholder="Write feedback for the student..."
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        void handleReviewDecision(version.id, 'APPROVED')
-                      }
-                      disabled={!isPending || isBusy}
-                    >
-                      {reviewingVersionId === version.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                      )}
-                      Approve
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() =>
-                        void handleReviewDecision(version.id, 'REJECTED')
-                      }
-                      disabled={!isPending || isBusy}
-                    >
-                      {reviewingVersionId === version.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <XCircle className="mr-2 h-4 w-4" />
-                      )}
-                      Reject
-                    </Button>
-
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="10"
-                      className="h-9 w-28 rounded-md border border-input bg-background px-2 text-sm"
-                      value={scoreByVersion[version.id] ?? version.score ?? ''}
-                      onChange={(event) =>
-                        setScoreByVersion((previous) => ({
-                          ...previous,
-                          [version.id]: event.target.value,
-                        }))
-                      }
-                      placeholder="Score"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={() => void handleGradeVersion(version.id)}
-                      disabled={isBusy}
-                    >
-                      {gradingVersionId === version.id ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      Mark as graded
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </CardContent>
       </Card>
 
@@ -616,6 +379,61 @@ export default function GroupDetailPage() {
           </Card>
         </div>
 
+        {/* SRS Document Status */}
+        <div className="md:col-span-3 space-y-4 pt-6 border-t">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">SRS Document</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {srsDoc ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {srsDoc.versions.length} version(s) created
+                    </span>
+                    {srsDoc.draft_content && (
+                      <span className="text-xs text-muted-foreground">
+                        Draft in progress
+                      </span>
+                    )}
+                  </div>
+                  {srsDoc.versions.length > 0 && (
+                    <div className="space-y-2">
+                      {srsDoc.versions.slice(0, 3).map((v) => (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between rounded border p-2 text-sm"
+                        >
+                          <span>v{v.version_number}</span>
+                          <SrsStatusBadge status={v.status} />
+                          {v.status === 'SUBMITTED' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                router.push(
+                                  `/lecturer/srs-reviews/${groupId}/${v.id}`,
+                                )
+                              }
+                            >
+                              Review
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No SRS document created yet for this group.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
         {/* AI & Analytics Reports Section */}
         <div className="md:col-span-3 space-y-4 pt-6 border-t">
           <Card className="shadow-sm border-primary/20 bg-primary/2">
@@ -697,13 +515,6 @@ export default function GroupDetailPage() {
                     </AlertDescription>
                   </Alert>
 
-                  {reportType === 'srs' && (
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <pre className="whitespace-pre-wrap font-sans text-sm">
-                        {reportResult}
-                      </pre>
-                    </div>
-                  )}
                   {reportType === 'commits' && (
                     <div className="space-y-8">
                       <h3 className="text-lg font-bold border-b pb-2">
