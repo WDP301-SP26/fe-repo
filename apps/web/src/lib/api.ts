@@ -451,6 +451,116 @@ export const reportAPI = {
     fetchAPI<any>(`/api/reports/commits/${groupId}`),
 };
 
+export type DocumentStatus =
+  | 'DRAFT'
+  | 'PENDING'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'GRADED';
+
+export interface DocumentSubmissionVersion {
+  id: string;
+  group_id: string;
+  base_submission_id: string | null;
+  version_number: number;
+  submitted_by_id: string;
+  title: string;
+  document_url: string | null;
+  reference: string | null;
+  change_summary: string | null;
+  content_markdown: string | null;
+  status: DocumentStatus;
+  score: number | null;
+  feedback: string | null;
+  created_at: string;
+  updated_at: string;
+  submittedBy?: {
+    id: string;
+    email: string;
+    full_name: string | null;
+  };
+}
+
+export const documentSubmissionAPI = {
+  getAllSubmissions: () =>
+    fetchAPI<DocumentSubmissionVersion[]>('/api/documents'),
+  getGroupVersions: (groupId: string) =>
+    fetchAPI<DocumentSubmissionVersion[]>(
+      `/api/documents/group/${groupId}/versions`,
+    ),
+  getGroupSubmissions: (groupId: string) =>
+    fetchAPI<DocumentSubmissionVersion[]>(`/api/documents/group/${groupId}`),
+  saveDraftVersion: (
+    groupId: string,
+    data: {
+      title: string;
+      reference?: string;
+      document_url?: string;
+      change_summary?: string;
+      content_markdown?: string;
+      base_submission_id?: string;
+    },
+  ) =>
+    fetchAPI<DocumentSubmissionVersion>(
+      `/api/documents/group/${groupId}/drafts`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  updateDraftVersion: (
+    submissionId: string,
+    data: {
+      title?: string;
+      reference?: string;
+      document_url?: string;
+      change_summary?: string;
+      content_markdown?: string;
+    },
+  ) =>
+    fetchAPI<DocumentSubmissionVersion>(`/api/documents/${submissionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  submitVersion: (submissionId: string) =>
+    fetchAPI<DocumentSubmissionVersion>(
+      `/api/documents/${submissionId}/submit`,
+      {
+        method: 'PATCH',
+      },
+    ),
+  submitDocument: (
+    groupId: string,
+    data: {
+      title: string;
+      reference?: string;
+      document_url?: string;
+      change_summary?: string;
+      content_markdown?: string;
+      base_submission_id?: string;
+    },
+  ) =>
+    fetchAPI<DocumentSubmissionVersion>(`/api/documents/group/${groupId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  gradeDocument: (
+    submissionId: string,
+    data: {
+      status: DocumentStatus;
+      score?: number;
+      feedback?: string;
+    },
+  ) =>
+    fetchAPI<DocumentSubmissionVersion>(
+      `/api/documents/${submissionId}/grade`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    ),
+};
+
 // Jira API methods
 export const jiraAPI = {
   getProjects: () => fetchAPI<any[]>('/api/jira/projects'),
@@ -802,7 +912,18 @@ export interface StudentReviewStatus {
 
 export interface StudentPublishedScoresResponse {
   semester: SemesterInfo | null;
-  milestones: Array<{
+  groups: Array<{
+    group_id: string;
+    group_name: string;
+    topic_name: string | null;
+    checkpoints: {
+      checkpoint_1: number | null;
+      checkpoint_2: number | null;
+      checkpoint_3: number | null;
+    };
+    total_score: number | null;
+  }>;
+  milestones?: Array<{
     milestone: ReviewMilestoneInfo;
     groups: Array<{
       group_id: string;

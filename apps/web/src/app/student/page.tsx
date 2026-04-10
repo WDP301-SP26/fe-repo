@@ -274,7 +274,7 @@ export default function StudentDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Published Milestone Scores</CardTitle>
+          <CardTitle>Published Checkpoint Scores</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {publishedScoresLoading ? (
@@ -373,7 +373,7 @@ export default function StudentDashboardPage() {
             ))
           ) : (
             <div className="text-sm text-muted-foreground">
-              No published review scores yet.
+              No published checkpoint scores yet.
             </div>
           )}
         </CardContent>

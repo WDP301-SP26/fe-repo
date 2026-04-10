@@ -87,7 +87,7 @@ export function LoginForm({
       router.refresh();
     } catch (err) {
       console.error('❌ Login error:', err);
-      setServerError('Email hoặc mật khẩu không đúng');
+      setServerError('Incorrect email or password');
     } finally {
       setIsLoading(false);
     }
@@ -98,13 +98,13 @@ export function LoginForm({
       <Card className="border-slate-800 bg-slate-900/85 text-slate-100 shadow-2xl shadow-cyan-950/30 backdrop-blur">
         <CardHeader className="space-y-3 pb-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
-            Đăng Nhập Bảo Mật
+            Secure Sign In
           </p>
           <CardTitle className="text-2xl font-extrabold tracking-tight text-white">
-            Chào Mừng Trở Lại
+            Welcome Back
           </CardTitle>
           <p className="text-sm text-slate-300">
-            Sử dụng tài khoản nhà trường để tiếp tục.
+            Use your school account to continue.
           </p>
         </CardHeader>
         <CardContent>
@@ -119,7 +119,7 @@ export function LoginForm({
               <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="email" className="text-slate-200">
-                    Email Trường
+                    School Email
                   </Label>
                   <Input
                     id="email"
@@ -138,10 +138,10 @@ export function LoginForm({
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password" className="text-slate-200">
-                      Mật khẩu
+                      Password
                     </Label>
                     <span className="text-xs text-slate-400">
-                      Quên mật khẩu? Liên hệ quản trị viên
+                      Forgot password? Contact administrator
                     </span>
                   </div>
                   <PasswordInput
@@ -161,7 +161,7 @@ export function LoginForm({
                   className="h-11 w-full bg-cyan-400 font-semibold text-slate-950 hover:bg-cyan-300"
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                  {isLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
               </div>
             </div>

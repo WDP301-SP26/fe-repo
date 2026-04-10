@@ -176,6 +176,17 @@ export default function LecturerClassesPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
+                {item.enrollment_key ? (
+                  <div className="rounded-md border bg-accent/40 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">
+                      Enrollment key:{' '}
+                    </span>
+                    <span className="font-mono font-semibold select-all cursor-text">
+                      {item.enrollment_key}
+                    </span>
+                  </div>
+                ) : null}
+
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Layers3 className="h-4 w-4" />
                   {item.groupsLoading

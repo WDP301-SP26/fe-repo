@@ -26,8 +26,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import {
+  documentSubmissionAPI,
+  githubAPI,
+  groupAPI,
+  jiraAPI,
+  reportAPI,
+  topicAPI,
+  type DocumentSubmissionVersion,
+} from '@/lib/api';
 import { isAPIError } from '@/lib/api-error';
-import { githubAPI, groupAPI, jiraAPI, reportAPI, topicAPI } from '@/lib/api';
 import { getApiBaseUrl, getFrontendBaseUrl } from '@/lib/runtime-config';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -50,7 +59,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR, { useSWRConfig } from 'swr';
 
@@ -166,9 +175,26 @@ export default function GroupDetailsPage() {
   const [reportGeneratedAt, setReportGeneratedAt] = useState<string | null>(
     null,
   );
+  const [srsTitle, setSrsTitle] = useState('');
+  const [srsReference, setSrsReference] = useState('');
+  const [srsChangeSummary, setSrsChangeSummary] = useState('');
+  const [srsContentMarkdown, setSrsContentMarkdown] = useState('');
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submittingVersionId, setSubmittingVersionId] = useState<string | null>(
+    null,
+  );
   const [integrationIssue, setIntegrationIssue] =
     useState<ActionableIssue | null>(null);
   const [assignmentsPage, setAssignmentsPage] = useState(1);
+
+  const {
+    data: srsVersions,
+    mutate: mutateSrsVersions,
+    isLoading: loadingSrsVersions,
+  } = useSWR<DocumentSubmissionVersion[]>(
+    groupId ? `/api/documents/group/${groupId}/versions` : null,
+    () => documentSubmissionAPI.getGroupVersions(groupId),
+  );
 
   const {
     data: jiraProjects,
@@ -425,6 +451,7 @@ export default function GroupDetailsPage() {
       if (type === 'srs') {
         const res = await reportAPI.generateSrs(groupId);
         setReportResult(res.markdown);
+        setSrsContentMarkdown(res.markdown || '');
       } else if (type === 'assignments') {
         const res = await reportAPI.getAssignments(groupId);
         setReportResult(res);
@@ -484,6 +511,87 @@ export default function GroupDetailsPage() {
     integrationStatus?.warnings,
     reportResult?.warnings,
   ]);
+
+  const activeDraftVersion = useMemo(
+    () => srsVersions?.find((version) => version.status === 'DRAFT') || null,
+    [srsVersions],
+  );
+
+  const latestVersion = useMemo(() => srsVersions?.[0] || null, [srsVersions]);
+
+  useEffect(() => {
+    if (!activeDraftVersion) {
+      return;
+    }
+
+    setSrsTitle((previous) => previous || activeDraftVersion.title || '');
+    setSrsReference(
+      (previous) =>
+        previous ||
+        activeDraftVersion.reference ||
+        activeDraftVersion.document_url ||
+        '',
+    );
+    setSrsChangeSummary(
+      (previous) => previous || activeDraftVersion.change_summary || '',
+    );
+    setSrsContentMarkdown(
+      (previous) => previous || activeDraftVersion.content_markdown || '',
+    );
+  }, [activeDraftVersion]);
+
+  const handleSaveSrsDraft = async () => {
+    if (!srsTitle.trim()) {
+      toast.error('Nhập title trước khi lưu version.');
+      return;
+    }
+
+    setSavingDraft(true);
+    try {
+      const payload = {
+        title: srsTitle.trim(),
+        reference: srsReference.trim() || undefined,
+        change_summary: srsChangeSummary.trim() || undefined,
+        content_markdown: srsContentMarkdown.trim() || undefined,
+      };
+
+      if (activeDraftVersion) {
+        await documentSubmissionAPI.updateDraftVersion(activeDraftVersion.id, {
+          ...payload,
+        });
+        toast.success('Updated current draft version.');
+      } else {
+        await documentSubmissionAPI.saveDraftVersion(groupId, {
+          ...payload,
+          base_submission_id: latestVersion?.id || undefined,
+        });
+        toast.success('Created new draft version.');
+      }
+
+      await mutateSrsVersions();
+    } catch (error) {
+      toast.error('Failed to save draft version.', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleSubmitSrsVersion = async (versionId: string) => {
+    setSubmittingVersionId(versionId);
+    try {
+      await documentSubmissionAPI.submitVersion(versionId);
+      toast.success('Đã submit version cho giảng viên.');
+      await mutateSrsVersions();
+    } catch (error) {
+      toast.error('Không thể submit version.', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    } finally {
+      setSubmittingVersionId(null);
+    }
+  };
 
   // Remove a linked repo
   const handleRemoveRepo = async () => {
@@ -1008,6 +1116,172 @@ export default function GroupDetailsPage() {
           </CardContent>
         </Card>
       )}
+
+      <Card className="shadow-sm border-border/60">
+        <CardHeader className="pb-4 border-b bg-muted/5 rounded-t-lg">
+          <CardTitle className="text-xl flex items-center gap-2">
+            <FileText className="h-5 w-5 text-primary" /> SRS Versions
+          </CardTitle>
+          <CardDescription>
+            Save draft versions, submit selected versions, and track SRS
+            history.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Version title</label>
+              <Input
+                value={srsTitle}
+                onChange={(event) => setSrsTitle(event.target.value)}
+                placeholder="SRS v2"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Reference (optional)
+              </label>
+              <Input
+                value={srsReference}
+                onChange={(event) => setSrsReference(event.target.value)}
+                placeholder="https://docs.google.com/..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Change summary (optional)
+            </label>
+            <textarea
+              className="flex min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={srsChangeSummary}
+              onChange={(event) => setSrsChangeSummary(event.target.value)}
+              placeholder="Example: Added FR payment flow, updated NFR performance target, refined BR-03..."
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              SRS content (Markdown, optional)
+            </label>
+            <textarea
+              className="flex min-h-48 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+              value={srsContentMarkdown}
+              onChange={(event) => setSrsContentMarkdown(event.target.value)}
+              placeholder="# Software Requirements Specification\n\n## 1. Introduction\n..."
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleSaveSrsDraft} disabled={savingDraft}>
+              {savingDraft ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              Save draft version
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => void mutateSrsVersions()}
+              disabled={loadingSrsVersions}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh versions
+            </Button>
+          </div>
+
+          {loadingSrsVersions && (
+            <p className="text-sm text-muted-foreground">
+              Loading SRS versions...
+            </p>
+          )}
+
+          {!loadingSrsVersions && (srsVersions || []).length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No SRS versions yet. Create your first draft.
+            </p>
+          )}
+
+          <div className="space-y-3">
+            {(srsVersions || []).map((version) => {
+              const isPending = version.status === 'PENDING';
+              const isDraft = version.status === 'DRAFT';
+              const isBusy = submittingVersionId === version.id;
+
+              return (
+                <div
+                  key={version.id}
+                  className="rounded-md border bg-background p-4 space-y-2"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-semibold">
+                        {version.title} · v{version.version_number}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {version.reference ||
+                          version.document_url ||
+                          'No reference'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full border px-2 py-0.5 text-xs">
+                        {version.status}
+                      </span>
+                      {isPending ? (
+                        <span className="rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                          Submitted to lecturer
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span>
+                      Created: {new Date(version.created_at).toLocaleString()}
+                    </span>
+                    {version.base_submission_id ? (
+                      <span>Base version linked</span>
+                    ) : null}
+                    {version.score !== null ? (
+                      <span>Score: {version.score}</span>
+                    ) : null}
+                  </div>
+
+                  {version.change_summary ? (
+                    <div className="rounded-md border bg-muted/30 p-3 text-xs">
+                      <span className="font-medium">Change summary: </span>
+                      {version.change_summary}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    {isDraft ? (
+                      <Button
+                        size="sm"
+                        onClick={() => void handleSubmitSrsVersion(version.id)}
+                        disabled={isBusy}
+                      >
+                        {isBusy ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        Submit this version
+                      </Button>
+                    ) : null}
+                    {!isDraft ? (
+                      <span className="text-xs text-muted-foreground">
+                        This version has already been submitted or graded.
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {isLeader && group.topic && (
         <Card className="shadow-sm border-primary/20 bg-primary/2">
